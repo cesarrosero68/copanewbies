@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSkillsCompetitionData } from "@/hooks/useSkillsCompetitionData";
+import { useTournament } from "@/lib/tournamentContext";
 import { SkillsPlayer } from "@/lib/skillsTypes";
 import { getBestTimedResultMs, getDirectScoreFromResults, getPointsForPosition } from "@/lib/skillsRanking";
 import { LogIn } from "lucide-react";
 
 export default function Skills() {
-  const { players, results, pointScales } = useSkillsCompetitionData({ activeOnly: true });
+  const { tournamentId } = useTournament();
+  const { players, results, pointScales } = useSkillsCompetitionData({ activeOnly: true, tournamentId });
 
   const byTest = (testNumber: number) => results.filter((result) => result.test_number === testNumber);
 
