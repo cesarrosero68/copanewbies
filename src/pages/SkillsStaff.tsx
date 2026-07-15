@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStaffSession, clearStaffSession } from "@/lib/skillsTypes";
 import { useSkillsCompetitionData } from "@/hooks/useSkillsCompetitionData";
+import { useTournament } from "@/lib/tournamentContext";
 import PlayersTab from "@/components/skills/PlayersTab";
 import TimedTestTab from "@/components/skills/TimedTestTab";
 import SniperTestTab from "@/components/skills/SniperTestTab";
@@ -14,7 +15,8 @@ import { LogOut } from "lucide-react";
 export default function SkillsStaff() {
   const navigate = useNavigate();
   const staff = getStaffSession();
-  const { players, results, pointScales, refresh } = useSkillsCompetitionData();
+  const { activeTournamentId } = useTournament();
+  const { players, results, pointScales, refresh } = useSkillsCompetitionData({ tournamentId: activeTournamentId });
 
   useEffect(() => {
     if (!staff) {
