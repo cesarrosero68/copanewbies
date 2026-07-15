@@ -5,20 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
+import { useTournament } from "@/lib/tournamentContext";
 
 export default function TeamDetail() {
   const { slug } = useParams();
+  const { tournamentId } = useTournament();
 
   const { data: team } = useQuery({
-    queryKey: ["team", slug],
+    queryKey: ["team", slug, tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("teams")
         .select("*")
         .eq("slug", slug)
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .single();
       return data;
     },
@@ -43,7 +43,7 @@ export default function TeamDetail() {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .or(`home_team_id.eq.${team!.id},away_team_id.eq.${team!.id}`)
         .order("match_number");
       return data || [];
@@ -57,7 +57,7 @@ export default function TeamDetail() {
       const { data } = await supabase
         .from("standings_aggregate")
         .select("*")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .eq("team_id", team!.id)
         .single();
       return data;

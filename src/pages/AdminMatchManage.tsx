@@ -13,8 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft } from "lucide-react";
 import TeamLogo from "@/components/TeamLogo";
 
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
-
 const PENALTY_TYPES = [
   { code: "BC", desc: "BODY CHECKING" },
   { code: "BDG", desc: "BOARDING" },
@@ -314,8 +312,8 @@ function MatchActions({ match, updateMatch, queryClient, navigate }: any) {
       return;
     }
 
-    await supabase.rpc("recalculate_standings", { p_tournament_id: TOURNAMENT_ID });
-    await supabase.rpc("recalculate_player_stats", { p_tournament_id: TOURNAMENT_ID });
+    await supabase.rpc("recalculate_standings", { p_tournament_id: match.tournament_id });
+    await supabase.rpc("recalculate_player_stats", { p_tournament_id: match.tournament_id });
 
     queryClient.invalidateQueries({ queryKey: ["admin-match", match.id] });
     queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
@@ -341,8 +339,8 @@ function MatchActions({ match, updateMatch, queryClient, navigate }: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    await supabase.rpc("recalculate_standings", { p_tournament_id: TOURNAMENT_ID });
-    await supabase.rpc("recalculate_player_stats", { p_tournament_id: TOURNAMENT_ID });
+    await supabase.rpc("recalculate_standings", { p_tournament_id: match.tournament_id });
+    await supabase.rpc("recalculate_player_stats", { p_tournament_id: match.tournament_id });
     queryClient.invalidateQueries({ queryKey: ["admin-match", match.id] });
     queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
     toast({ title: "Partido restablecido a Programado" });

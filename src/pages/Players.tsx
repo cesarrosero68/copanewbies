@@ -3,26 +3,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { TOURNAMENT_ID, IS_PRESEASON } from "@/lib/tournament";
+import { IS_PRESEASON } from "@/lib/tournament";
+import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 
 export default function Players() {
   const [teamFilter, setTeamFilter] = useState("all");
+  const { tournamentId } = useTournament();
 
   const { data: teams } = useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("teams")
         .select("*")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("name");
       return data || [];
     },
   });
 
   const { data: players } = useQuery({
-    queryKey: ["all-players", teamFilter],
+    queryKey: ["all-players", tournamentId, teamFilter],
     queryFn: async () => {
       let query = supabase
         .from("players")
@@ -43,24 +45,24 @@ export default function Players() {
   });
 
   const { data: playerStats } = useQuery({
-    queryKey: ["all-player-stats"],
+    queryKey: ["all-player-stats", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("player_stats_aggregate")
         .select("*")
-        .eq("tournament_id", TOURNAMENT_ID);
+        .eq("tournament_id", tournamentId);
       return data || [];
     },
     enabled: !IS_PRESEASON,
   });
 
   const { data: standings } = useQuery({
-    queryKey: ["standings-for-pj"],
+    queryKey: ["standings-for-pj", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("standings_aggregate")
         .select("team_id, played")
-        .eq("tournament_id", TOURNAMENT_ID);
+        .eq("tournament_id", tournamentId);
       return data || [];
     },
     enabled: !IS_PRESEASON,

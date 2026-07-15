@@ -7,14 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { useTournament } from "@/lib/tournamentContext";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { activeTournamentId, activeTournament, refresh: refreshTournaments } = useTournament();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newYear, setNewYear] = useState<string>(String(new Date().getFullYear()));
+  const [newSemester, setNewSemester] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -45,22 +55,57 @@ export default function AdminDashboard() {
   });
 
   const { data: matches } = useQuery({
-    queryKey: ["admin-matches"],
+    queryKey: ["admin-matches", activeTournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", activeTournamentId)
         .in("stage", MANAGEABLE_STAGES)
         .order("match_number");
       return data || [];
     },
-    enabled: !!session && isAdmin === true,
+    enabled: !!session && isAdmin === true && !!activeTournamentId,
   });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/admin/login");
+  };
+
+  const createEdition = async () => {
+    if (!newName.trim() || !newYear.trim() || !newSemester.trim()) {
+      toast({ title: "Faltan datos", description: "Nombre, año y semestre son obligatorios", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    try {
+      // Archive previous active edition(s)
+      const { error: archErr } = await supabase
+        .from("tournaments")
+        .update({ status: "finished" })
+        .eq("status", "active");
+      if (archErr) throw archErr;
+
+      // Create the new active edition
+      const { error: insErr } = await supabase.from("tournaments").insert({
+        name: newName.trim(),
+        year: Number(newYear),
+        semester: newSemester.trim(),
+        status: "active",
+      } as any);
+      if (insErr) throw insErr;
+
+      toast({ title: "Edición creada", description: `${newName} está ahora activa.` });
+      setDialogOpen(false);
+      setNewName("");
+      setNewSemester("");
+      await refreshTournaments();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
   };
 
   if (loading || checkingAdmin) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
@@ -131,7 +176,50 @@ export default function AdminDashboard() {
       </header>
 
       <div className="container py-8">
-        <h2 className="font-display text-2xl font-bold uppercase mb-6">Gestión de Partidos</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div>
+            <h2 className="font-display text-2xl font-bold uppercase">Gestión de Partidos</h2>
+            {activeTournament && (
+              <p className="text-sm text-muted-foreground">
+                Edición activa: <span className="font-medium text-foreground">{activeTournament.name}</span>
+                {activeTournament.semester && ` • ${activeTournament.semester}`}
+              </p>
+            )}
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Crear nueva edición</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nueva edición</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label>Nombre</Label>
+                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Copa Newbies III" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Año</Label>
+                    <Input value={newYear} onChange={(e) => setNewYear(e.target.value)} type="number" />
+                  </div>
+                  <div>
+                    <Label>Semestre</Label>
+                    <Input value={newSemester} onChange={(e) => setNewSemester(e.target.value)} placeholder="2026-2" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  La edición actual pasará a estado "finalizada" y la nueva quedará activa con datos en blanco.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={creating}>Cancelar</Button>
+                <Button onClick={createEdition} disabled={creating}>{creating ? "Creando..." : "Crear edición"}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="space-y-3">
           {sortedMatches.map((match: any) => (

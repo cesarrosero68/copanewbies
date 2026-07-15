@@ -6,7 +6,8 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toBogotaDate } from "@/lib/dateUtils";
-import { TOURNAMENT_ID, IS_PRESEASON } from "@/lib/tournament";
+import { IS_PRESEASON } from "@/lib/tournament";
+import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 
 const teamColorMap: Record<string, string> = {
@@ -18,26 +19,27 @@ const teamColorMap: Record<string, string> = {
 };
 
 export default function Home() {
+  const { tournamentId } = useTournament();
   const { data: standings } = useQuery({
-    queryKey: ["standings"],
+    queryKey: ["standings", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("standings_aggregate")
         .select("*, team:teams(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("rank", { ascending: true });
       return data || [];
     }
   });
 
   const { data: upcomingMatches } = useQuery({
-    queryKey: ["upcoming-matches"],
+    queryKey: ["upcoming-matches", tournamentId],
     queryFn: async () => {
       const now = new Date().toISOString();
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .eq("status", "scheduled")
         .gte("start_time", now)
         .order("start_time", { ascending: true })
@@ -47,12 +49,12 @@ export default function Home() {
   });
 
   const { data: playoffProgress } = useQuery({
-    queryKey: ["playoff-progress"],
+    queryKey: ["playoff-progress", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("stage, winner_team_id")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .in("stage", ["P1A", "P1B", "SEMI", "P2"]);
       const map: Record<string, boolean> = {};
       (data || []).forEach((m: any) => {
@@ -75,12 +77,12 @@ export default function Home() {
   };
 
   const { data: recentMatches } = useQuery({
-    queryKey: ["recent-matches"],
+    queryKey: ["recent-matches", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .in("status", ["final", "locked"])
         .order("start_time", { ascending: false })
         .limit(4);
@@ -90,12 +92,12 @@ export default function Home() {
   });
 
   const { data: topScorers } = useQuery({
-    queryKey: ["top-scorers"],
+    queryKey: ["top-scorers", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("player_stats_aggregate")
         .select("*, player:players(*), team:teams(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("goals", { ascending: false })
         .limit(5);
       return data || [];
@@ -104,12 +106,12 @@ export default function Home() {
   });
 
   const { data: topAssists } = useQuery({
-    queryKey: ["top-assists"],
+    queryKey: ["top-assists", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("player_stats_aggregate")
         .select("*, player:players(*), team:teams(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("assists", { ascending: false })
         .limit(5);
       return data || [];
@@ -118,12 +120,12 @@ export default function Home() {
   });
 
   const { data: topPoints } = useQuery({
-    queryKey: ["top-points"],
+    queryKey: ["top-points", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("player_stats_aggregate")
         .select("*, player:players(*), team:teams(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("points", { ascending: false })
         .limit(5);
       return data || [];

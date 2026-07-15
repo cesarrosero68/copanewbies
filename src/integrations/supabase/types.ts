@@ -209,6 +209,7 @@ export type Database = {
           player_id: string
           team_id: string
           time_mmss: string
+          tournament_id: string | null
         }
         Insert: {
           created_at?: string
@@ -220,6 +221,7 @@ export type Database = {
           player_id: string
           team_id: string
           time_mmss: string
+          tournament_id?: string | null
         }
         Update: {
           created_at?: string
@@ -231,6 +233,7 @@ export type Database = {
           player_id?: string
           team_id?: string
           time_mmss?: string
+          tournament_id?: string | null
         }
         Relationships: [
           {
@@ -252,6 +255,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "penalty_events_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -355,6 +365,7 @@ export type Database = {
           id: string
           is_active: boolean
           role: Database["public"]["Enums"]["skills_role"]
+          tournament_id: string | null
         }
         Insert: {
           club: string
@@ -364,6 +375,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: Database["public"]["Enums"]["skills_role"]
+          tournament_id?: string | null
         }
         Update: {
           club?: string
@@ -373,26 +385,46 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: Database["public"]["Enums"]["skills_role"]
+          tournament_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "skills_players_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skills_point_tables: {
         Row: {
           config: Json
           id: string
           table_name: string
+          tournament_id: string | null
         }
         Insert: {
           config?: Json
           id?: string
           table_name: string
+          tournament_id?: string | null
         }
         Update: {
           config?: Json
           id?: string
           table_name?: string
+          tournament_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "skills_point_tables_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skills_results: {
         Row: {
@@ -408,6 +440,7 @@ export type Database = {
           time_milliseconds: number | null
           time_minutes: number | null
           time_seconds: number | null
+          tournament_id: string | null
         }
         Insert: {
           attempt_number?: number | null
@@ -422,6 +455,7 @@ export type Database = {
           time_milliseconds?: number | null
           time_minutes?: number | null
           time_seconds?: number | null
+          tournament_id?: string | null
         }
         Update: {
           attempt_number?: number | null
@@ -436,6 +470,7 @@ export type Database = {
           time_milliseconds?: number | null
           time_minutes?: number | null
           time_seconds?: number | null
+          tournament_id?: string | null
         }
         Relationships: [
           {
@@ -452,6 +487,13 @@ export type Database = {
             referencedRelation: "skills_players"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "skills_results_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       skills_users: {
@@ -459,21 +501,32 @@ export type Database = {
           created_at: string
           id: string
           password_hash: string
+          tournament_id: string | null
           username: string
         }
         Insert: {
           created_at?: string
           id?: string
           password_hash: string
+          tournament_id?: string | null
           username: string
         }
         Update: {
           created_at?: string
           id?: string
           password_hash?: string
+          tournament_id?: string | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "skills_users_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       standings_aggregate: {
         Row: {
@@ -583,6 +636,9 @@ export type Database = {
           name: string
           rules_json: Json | null
           season: string
+          semester: string | null
+          status: string
+          year: number | null
         }
         Insert: {
           created_at?: string
@@ -590,6 +646,9 @@ export type Database = {
           name: string
           rules_json?: Json | null
           season: string
+          semester?: string | null
+          status?: string
+          year?: number | null
         }
         Update: {
           created_at?: string
@@ -597,6 +656,9 @@ export type Database = {
           name?: string
           rules_json?: Json | null
           season?: string
+          semester?: string | null
+          status?: string
+          year?: number | null
         }
         Relationships: []
       }
@@ -661,6 +723,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_active_tournament_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

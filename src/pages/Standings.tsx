@@ -2,18 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { TOURNAMENT_ID, IS_PRESEASON } from "@/lib/tournament";
+import { IS_PRESEASON } from "@/lib/tournament";
+import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Standings() {
+  const { tournamentId } = useTournament();
   const { data: standings } = useQuery({
-    queryKey: ["standings-full"],
+    queryKey: ["standings-full", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("standings_aggregate")
         .select("*, team:teams(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("rank", { ascending: true });
       return data || [];
     },
@@ -91,13 +93,14 @@ export default function Standings() {
 }
 
 function FairPlayTable({ teams }: { teams: any[] }) {
+  const { tournamentId } = useTournament();
   const { data: penaltyData } = useQuery({
-    queryKey: ["fair-play"],
+    queryKey: ["fair-play", tournamentId],
     queryFn: async () => {
       const { data: matches } = await supabase
         .from("matches")
         .select("id, start_time, match_number")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .eq("stage", "REGULAR")
         .in("status", ["final", "locked"])
         .order("start_time");
