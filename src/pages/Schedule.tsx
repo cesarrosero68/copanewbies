@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TeamLogo from "@/components/TeamLogo";
 import { useQueryClient } from "@tanstack/react-query";
-
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
+import { useTournament } from "@/lib/tournamentContext";
 
 const statusLabels: Record<string, string> = {
   scheduled: "Programado",
@@ -158,26 +157,27 @@ function MatchCard({
 export default function Schedule() {
   const [teamFilter, setTeamFilter] = useState("all");
   const queryClient = useQueryClient();
+  const { tournamentId } = useTournament();
 
   const { data: teams } = useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("teams")
         .select("*")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .order("name");
       return data || [];
     },
   });
 
   const { data: matches } = useQuery({
-    queryKey: ["all-matches", teamFilter],
+    queryKey: ["all-matches", tournamentId, teamFilter],
     queryFn: async () => {
       let query = supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .eq("stage", "REGULAR")
         .order("match_number", { ascending: true });
 
@@ -195,12 +195,12 @@ export default function Schedule() {
   });
 
   const { data: playoffMatches } = useQuery({
-    queryKey: ["playoff-matches-schedule"],
+    queryKey: ["playoff-matches-schedule", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .neq("stage", "REGULAR")
         .order("match_number", { ascending: true });
       return data || [];
