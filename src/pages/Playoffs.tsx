@@ -3,9 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { IS_PRESEASON } from "@/lib/tournament";
+import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
-
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
 
 function BracketMatch({
   match,
@@ -68,13 +67,14 @@ function BracketMatch({
 }
 
 export default function Playoffs() {
+  const { tournamentId } = useTournament();
   const { data: playoffMatches } = useQuery({
-    queryKey: ["playoff-matches"],
+    queryKey: ["playoff-matches", tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-        .eq("tournament_id", TOURNAMENT_ID)
+        .eq("tournament_id", tournamentId)
         .neq("stage", "REGULAR")
         .order("match_number", { ascending: true });
       return data || [];
