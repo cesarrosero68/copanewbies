@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import copaLogo from "@/assets/copa-newbies-logo.png";
+import { useTournament } from "@/lib/tournamentContext";
+import { Button } from "@/components/ui/button";
 
 const navLinks = [
 { to: "/", label: "Inicio" },
@@ -10,17 +12,27 @@ const navLinks = [
 { to: "/standings", label: "Posiciones" },
 { to: "/players", label: "Jugadores" },
 { to: "/playoffs", label: "Playoffs" },
-{ to: "/skills", label: "Skills" }];
+{ to: "/skills", label: "Skills" },
+{ to: "/editions", label: "Ediciones" }];
 
 
 export default function PublicLayout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isReadOnly, currentTournament, clearEdition } = useTournament();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-secondary text-secondary-foreground">
+        {isReadOnly && currentTournament && (
+          <div className="bg-amber-500 text-white text-center text-sm py-2 px-4 flex flex-wrap gap-2 items-center justify-center">
+            <span>Viendo edición: <strong>{currentTournament.name}</strong> — Solo lectura</span>
+            <Button size="sm" variant="secondary" className="h-7" onClick={clearEdition}>
+              Volver a edición activa
+            </Button>
+          </div>
+        )}
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img alt="Copa Newbies II" className="h-10 w-10 rounded-full object-cover" src="/lovable-uploads/51c394b7-5ebc-4efb-aa3a-db5798c04ef0.png" />
