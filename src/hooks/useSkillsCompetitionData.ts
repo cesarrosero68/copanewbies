@@ -10,9 +10,10 @@ import {
 
 interface UseSkillsCompetitionDataOptions {
   activeOnly?: boolean;
+  tournamentId?: string;
 }
 
-export function useSkillsCompetitionData({ activeOnly = false }: UseSkillsCompetitionDataOptions = {}) {
+export function useSkillsCompetitionData({ activeOnly = false, tournamentId }: UseSkillsCompetitionDataOptions = {}) {
   const [players, setPlayers] = useState<SkillsPlayer[]>([]);
   const [results, setResults] = useState<SkillsResult[]>([]);
   const [pointScales, setPointScales] = useState<SkillsPointScales>({
@@ -25,11 +26,21 @@ export function useSkillsCompetitionData({ activeOnly = false }: UseSkillsCompet
     if (activeOnly) {
       playersQuery = playersQuery.eq("is_active", true);
     }
+    if (tournamentId) {
+      playersQuery = playersQuery.eq("tournament_id", tournamentId);
+    }
+
+    let resultsQuery = supabase.from("skills_results" as any).select("*");
+    let pointTablesQuery = supabase.from("skills_point_tables" as any).select("*");
+    if (tournamentId) {
+      resultsQuery = resultsQuery.eq("tournament_id", tournamentId);
+      pointTablesQuery = pointTablesQuery.eq("tournament_id", tournamentId);
+    }
 
     const [playersResponse, resultsResponse, pointTablesResponse] = await Promise.all([
       playersQuery,
-      supabase.from("skills_results" as any).select("*"),
-      supabase.from("skills_point_tables" as any).select("*"),
+      resultsQuery,
+      pointTablesQuery,
     ]);
 
     if (playersResponse.data) {
@@ -43,7 +54,7 @@ export function useSkillsCompetitionData({ activeOnly = false }: UseSkillsCompet
     if (pointTablesResponse.data) {
       setPointScales(extractSkillsPointScales(pointTablesResponse.data as unknown as SkillsPointTable[]));
     }
-  }, [activeOnly]);
+  }, [activeOnly, tournamentId]);
 
   useEffect(() => {
     void refresh();
