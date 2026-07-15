@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft } from "lucide-react";
 import TeamLogo from "@/components/TeamLogo";
-
-const TOURNAMENT_ID = "a0000000-0000-0000-0000-000000000001";
+import { useTournament } from "@/lib/tournamentContext";
 
 const PENALTY_TYPES = [
   { code: "BC", desc: "BODY CHECKING" },
