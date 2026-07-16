@@ -356,6 +356,45 @@ export type Database = {
           },
         ]
       }
+      site_theme: {
+        Row: {
+          accent_color: string
+          background_color: string
+          border_color: string
+          font_family: string
+          font_size_base: string
+          id: number
+          logo_url: string | null
+          primary_color: string
+          text_color: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          background_color?: string
+          border_color?: string
+          font_family?: string
+          font_size_base?: string
+          id?: number
+          logo_url?: string | null
+          primary_color?: string
+          text_color?: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          background_color?: string
+          border_color?: string
+          font_family?: string
+          font_size_base?: string
+          id?: number
+          logo_url?: string | null
+          primary_color?: string
+          text_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       skills_players: {
         Row: {
           club: string
