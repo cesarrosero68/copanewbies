@@ -92,6 +92,7 @@ export default function AdminDashboard() {
         name: newName.trim(),
         year: Number(newYear),
         semester: newSemester.trim(),
+        season: newSemester.trim(),
         status: "active",
       } as any);
       if (insErr) throw insErr;
