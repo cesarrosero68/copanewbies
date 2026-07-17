@@ -671,8 +671,11 @@ export type Database = {
       tournaments: {
         Row: {
           created_at: string
+          hero_logo_url: string | null
           id: string
+          logo_url: string | null
           name: string
+          primary_color: string | null
           rules_json: Json | null
           season: string
           semester: string | null
@@ -681,8 +684,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hero_logo_url?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          primary_color?: string | null
           rules_json?: Json | null
           season: string
           semester?: string | null
@@ -691,8 +697,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hero_logo_url?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          primary_color?: string | null
           rules_json?: Json | null
           season?: string
           semester?: string | null

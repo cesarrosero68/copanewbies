@@ -11,12 +11,16 @@ export interface TournamentEdition {
   status: string;
   season: string | null;
   created_at: string;
+  primary_color: string | null;
+  hero_logo_url: string | null;
+  logo_url: string | null;
 }
 
 interface TournamentContextValue {
   tournaments: TournamentEdition[];
   activeTournament: TournamentEdition | null;
   currentTournament: TournamentEdition | null;
+  viewedTournament: TournamentEdition | null;
   tournamentId: string;
   activeTournamentId: string;
   isViewingActive: boolean;
@@ -38,7 +42,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("*")
+      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url")
       .order("year", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     setTournaments((data ?? []) as unknown as TournamentEdition[]);
@@ -68,6 +72,16 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const isViewingActive = !currentTournament || currentTournament.id === activeTournamentId;
   const isReadOnly = !isViewingActive;
 
+  // Apply the viewed edition's primary color to the theme on every switch.
+  useEffect(() => {
+    if (!currentTournament) return;
+    const color = currentTournament.primary_color;
+    if (color) {
+      document.documentElement.style.setProperty("--primary", color);
+      document.documentElement.style.setProperty("--primary-foreground", "#ffffff");
+    }
+  }, [currentTournament?.id, currentTournament?.primary_color]);
+
   const setEdition = useCallback(
     (id: string) => {
       const next = new URLSearchParams(searchParams);
@@ -87,6 +101,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     tournaments,
     activeTournament,
     currentTournament,
+    viewedTournament: currentTournament,
     tournamentId,
     activeTournamentId,
     isViewingActive,

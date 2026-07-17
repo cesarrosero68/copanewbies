@@ -20,7 +20,12 @@ const navLinks = [
 export default function PublicLayout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isReadOnly, currentTournament, clearEdition } = useTournament();
+  const { isReadOnly, currentTournament, viewedTournament, clearEdition } = useTournament();
+  const fullName = viewedTournament?.name ?? "Copa Newbies III";
+  const nameParts = fullName.trim().split(/\s+/);
+  const nameSuffix = nameParts.length > 1 ? nameParts.pop()! : "";
+  const namePrefix = nameParts.join(" ");
+  const headerLogo = viewedTournament?.hero_logo_url || "/lovable-uploads/51c394b7-5ebc-4efb-aa3a-db5798c04ef0.png";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -36,9 +41,9 @@ export default function PublicLayout() {
         )}
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img alt="Copa Newbies II" className="h-10 w-10 rounded-full object-cover" src="/lovable-uploads/51c394b7-5ebc-4efb-aa3a-db5798c04ef0.png" />
+            <img alt={fullName} className="h-10 w-10 rounded-full object-cover" src={headerLogo} />
             <span className="font-display text-xl font-bold tracking-wide uppercase">
-              Copa Newbies <span className="text-primary">III</span>
+              {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
             </span>
           </Link>
 

@@ -28,7 +28,39 @@ export default function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [appearanceColor, setAppearanceColor] = useState<string>("#ff1493");
+  const [appearanceLogo, setAppearanceLogo] = useState<string>("");
+  const [savingAppearance, setSavingAppearance] = useState(false);
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (activeTournament) {
+      setAppearanceColor((activeTournament as any).primary_color || "#ff1493");
+      setAppearanceLogo((activeTournament as any).hero_logo_url || "");
+    }
+  }, [activeTournament]);
+
+  const saveAppearance = async () => {
+    if (!activeTournamentId) return;
+    setSavingAppearance(true);
+    try {
+      const { error } = await supabase
+        .from("tournaments")
+        .update({ primary_color: appearanceColor, hero_logo_url: appearanceLogo || null } as any)
+        .eq("id", activeTournamentId);
+      if (error) throw error;
+      document.documentElement.style.setProperty("--primary", appearanceColor);
+      document.documentElement.style.setProperty("--primary-foreground", "#ffffff");
+      toast({ title: "Apariencia guardada" });
+      setAppearanceOpen(false);
+      await refreshTournaments();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingAppearance(false);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -296,7 +328,69 @@ export default function AdminDashboard() {
           <Link to="/admin/apariencia">
             <Button variant="outline"><Palette className="w-4 h-4 mr-1" /> Apariencia</Button>
           </Link>
+          <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
+            <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
+          </Button>
         </div>
+
+        <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Apariencia de la edición activa</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Color primario</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={appearanceColor}
+                    onChange={(e) => setAppearanceColor(e.target.value)}
+                    className="w-12 h-10 rounded border border-border cursor-pointer"
+                  />
+                  <Input
+                    value={appearanceColor}
+                    onChange={(e) => setAppearanceColor(e.target.value)}
+                    className="font-mono"
+                    placeholder="#ff1493"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>URL del logo (hero)</Label>
+                <Input
+                  value={appearanceLogo}
+                  onChange={(e) => setAppearanceLogo(e.target.value)}
+                  placeholder="https://..."
+                />
+                {appearanceLogo && (
+                  <img src={appearanceLogo} alt="preview" className="mt-2 h-16 rounded object-contain" />
+                )}
+              </div>
+              <div className="border rounded-md p-4 bg-muted/30">
+                <div className="text-xs text-muted-foreground mb-2">Vista previa</div>
+                <div className="font-display text-xl font-bold uppercase mb-2">
+                  Copa Newbies <span style={{ color: appearanceColor }}>III</span>
+                </div>
+                <button
+                  type="button"
+                  style={{ background: appearanceColor, color: "#ffffff" }}
+                  className="px-4 py-2 rounded-md font-medium text-sm"
+                >
+                  Botón primario
+                </button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAppearanceOpen(false)} disabled={savingAppearance}>
+                Cancelar
+              </Button>
+              <Button onClick={saveAppearance} disabled={savingAppearance}>
+                {savingAppearance ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="mt-8 border-2 border-destructive/60 rounded-lg p-5 bg-destructive/5">
           <h3 className="font-display text-lg font-bold uppercase text-destructive mb-2">Zona de Peligro</h3>
