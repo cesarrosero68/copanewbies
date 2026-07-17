@@ -143,9 +143,9 @@ export default function Home() {
           src="/lovable-uploads/192672d5-a8d2-4226-8ce6-29a76b5d1b2e.png"
         />
         <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider text-secondary-foreground">
-          Copa Newbies <span className="text-primary">II</span>
+          Copa Newbies <span className="text-primary">III</span>
         </h1>
-        <p className="mt-3 text-secondary-foreground/70 text-lg">Temporada 2026 • 5 Equipos • 26 Partidos</p>
+        <p className="mt-3 text-secondary-foreground/70 text-lg">Temporada 2026 - 2 • ¿7 Equipos? • Más de 25 Partidos</p>
       </section>
 
       {/* Recent Results — hidden in PRESEASON */}
