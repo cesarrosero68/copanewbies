@@ -15,7 +15,7 @@ const teamColorMap: Record<string, string> = {
   reapers: "bg-team-reapers",
   "grey-panthers": "bg-team-panthers",
   "rabbits-chiks": "bg-team-rabbits",
-  aguilas: "bg-team-aguilas"
+  aguilas: "bg-team-aguilas",
 };
 
 export default function Home() {
@@ -36,7 +36,7 @@ export default function Home() {
         .eq("tournament_id", tournamentId)
         .order("rank", { ascending: true });
       return data || [];
-    }
+    },
   });
 
   const { data: upcomingMatches } = useQuery({
@@ -52,7 +52,7 @@ export default function Home() {
         .order("start_time", { ascending: true })
         .limit(4);
       return data || [];
-    }
+    },
   });
 
   const { data: playoffProgress } = useQuery({
@@ -68,7 +68,7 @@ export default function Home() {
         map[m.stage] = !!m.winner_team_id;
       });
       return map;
-    }
+    },
   });
 
   const getPlayoffPlaceholders = (stage: string) => {
@@ -76,9 +76,12 @@ export default function Home() {
     const p1bDone = playoffProgress?.["P1B"];
     const semiDone = playoffProgress?.["SEMI"];
     const p2Done = playoffProgress?.["P2"];
-    if (stage === "SEMI") return { home: p1aDone ? undefined : "Ganador P1A", away: p1bDone ? undefined : "Ganador P1B" };
-    if (stage === "P2") return { home: p1aDone ? undefined : "Perdedor P1A", away: p1bDone ? undefined : "Perdedor P1B" };
-    if (stage === "THIRD") return { home: semiDone ? undefined : "Perdedor Semi", away: p2Done ? undefined : "Ganador P2" };
+    if (stage === "SEMI")
+      return { home: p1aDone ? undefined : "Ganador P1A", away: p1bDone ? undefined : "Ganador P1B" };
+    if (stage === "P2")
+      return { home: p1aDone ? undefined : "Perdedor P1A", away: p1bDone ? undefined : "Perdedor P1B" };
+    if (stage === "THIRD")
+      return { home: semiDone ? undefined : "Perdedor Semi", away: p2Done ? undefined : "Ganador P2" };
     if (stage === "FINAL") return { home: "Reapers", away: semiDone ? undefined : "Ganador Semi" };
     return { home: undefined, away: undefined };
   };
@@ -95,7 +98,7 @@ export default function Home() {
         .limit(4);
       return data || [];
     },
-    enabled: !IS_PRESEASON
+    enabled: !IS_PRESEASON,
   });
 
   const { data: topScorers } = useQuery({
@@ -109,7 +112,7 @@ export default function Home() {
         .limit(5);
       return data || [];
     },
-    enabled: !IS_PRESEASON
+    enabled: !IS_PRESEASON,
   });
 
   const { data: topAssists } = useQuery({
@@ -123,7 +126,7 @@ export default function Home() {
         .limit(5);
       return data || [];
     },
-    enabled: !IS_PRESEASON
+    enabled: !IS_PRESEASON,
   });
 
   const { data: topPoints } = useQuery({
@@ -137,23 +140,23 @@ export default function Home() {
         .limit(5);
       return data || [];
     },
-    enabled: !IS_PRESEASON
+    enabled: !IS_PRESEASON,
   });
 
   return (
     <div className="container py-8 space-y-8">
       {/* Hero */}
-      <section className="text-center py-12 rounded-xl bg-secondary relative overflow-hidden">
-        <img
-          alt={fullName}
-          className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg"
-          src={heroLogo}
-        />
+      <section
+        className="text-center py-12 rounded-xl bg-secondary relative overflow-hidden"
+        style={{ background: "var(--header-bg, hsl(var(--secondary)))" }}
+      >
+        <img alt={fullName} className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg" src={heroLogo} />
         <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider text-secondary-foreground">
           {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
         </h1>
         <p className="mt-3 text-secondary-foreground/70 text-lg">
-          Temporada {subtitleYear}{subtitleSemester ? ` • ${subtitleSemester}` : ""}
+          Temporada {subtitleYear}
+          {subtitleSemester ? ` • ${subtitleSemester}` : ""}
         </p>
       </section>
 
@@ -210,29 +213,29 @@ export default function Home() {
             const showHomeLogo = !ph.home;
             const showAwayLogo = !ph.away;
             return (
-            <Card key={match.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1">
-                    {showHomeLogo && <TeamLogo team={match.home_team} size={40} />}
-                    <span className="font-medium text-sm">{homeName}</span>
+              <Card key={match.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      {showHomeLogo && <TeamLogo team={match.home_team} size={40} />}
+                      <span className="font-medium text-sm">{homeName}</span>
+                    </div>
+                    <span className="text-muted-foreground font-display text-lg px-4">VS</span>
+                    <div className="flex items-center gap-2 flex-1 justify-end">
+                      <span className="font-medium text-sm">{awayName}</span>
+                      {showAwayLogo && <TeamLogo team={match.away_team} size={40} />}
+                    </div>
                   </div>
-                  <span className="text-muted-foreground font-display text-lg px-4">VS</span>
-                  <div className="flex items-center gap-2 flex-1 justify-end">
-                    <span className="font-medium text-sm">{awayName}</span>
-                    {showAwayLogo && <TeamLogo team={match.away_team} size={40} />}
-                  </div>
-                </div>
-                {match.start_time && (
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    {format(toBogotaDate(match.start_time), "EEEE d MMM • HH:mm", { locale: es })}
-                  </p>
-                )}
-                <Badge className="mx-auto mt-1 block w-fit text-xs" variant="secondary">
-                  {match.stage === "REGULAR" ? `Partido #${match.match_number}` : match.stage}
-                </Badge>
-              </CardContent>
-            </Card>
+                  {match.start_time && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      {format(toBogotaDate(match.start_time), "EEEE d MMM • HH:mm", { locale: es })}
+                    </p>
+                  )}
+                  <Badge className="mx-auto mt-1 block w-fit text-xs" variant="secondary">
+                    {match.stage === "REGULAR" ? `Partido #${match.match_number}` : match.stage}
+                  </Badge>
+                </CardContent>
+              </Card>
             );
           })}
           {(!upcomingMatches || upcomingMatches.length === 0) && (
@@ -288,21 +291,30 @@ export default function Home() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-muted-foreground text-sm">
-                  {IS_PRESEASON ? "El torneo aún no ha comenzado" : !topPoints || topPoints.length === 0 ? "Sin datos aún" : ""}
+                  {IS_PRESEASON
+                    ? "El torneo aún no ha comenzado"
+                    : !topPoints || topPoints.length === 0
+                      ? "Sin datos aún"
+                      : ""}
                 </p>
-                {!IS_PRESEASON && topPoints?.map((ps: any, i: number) => (
-                  <div key={ps.player_id} className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
-                      <TeamLogo team={ps.team} size={20} />
-                      <span className="text-sm font-medium">#{ps.player?.jersey_number} {ps.player?.name}</span>
+                {!IS_PRESEASON &&
+                  topPoints?.map((ps: any, i: number) => (
+                    <div key={ps.player_id} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
+                        <TeamLogo team={ps.team} size={20} />
+                        <span className="text-sm font-medium">
+                          #{ps.player?.jersey_number} {ps.player?.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-display font-bold">{ps.points}</span>
+                        <span className="text-muted-foreground text-xs ml-1">
+                          ({ps.goals}G {ps.assists}A)
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-display font-bold">{ps.points}</span>
-                      <span className="text-muted-foreground text-xs ml-1">({ps.goals}G {ps.assists}A)</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </CardContent>
             </Card>
           </div>
@@ -312,18 +324,25 @@ export default function Home() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-muted-foreground text-sm">
-                  {IS_PRESEASON ? "El torneo aún no ha comenzado" : !topScorers || topScorers.length === 0 ? "Sin datos aún" : ""}
+                  {IS_PRESEASON
+                    ? "El torneo aún no ha comenzado"
+                    : !topScorers || topScorers.length === 0
+                      ? "Sin datos aún"
+                      : ""}
                 </p>
-                {!IS_PRESEASON && topScorers?.map((ps: any, i: number) => (
-                  <div key={ps.player_id} className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
-                      <TeamLogo team={ps.team} size={20} />
-                      <span className="text-sm font-medium">#{ps.player?.jersey_number} {ps.player?.name}</span>
+                {!IS_PRESEASON &&
+                  topScorers?.map((ps: any, i: number) => (
+                    <div key={ps.player_id} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
+                        <TeamLogo team={ps.team} size={20} />
+                        <span className="text-sm font-medium">
+                          #{ps.player?.jersey_number} {ps.player?.name}
+                        </span>
+                      </div>
+                      <span className="font-display font-bold">{ps.goals}</span>
                     </div>
-                    <span className="font-display font-bold">{ps.goals}</span>
-                  </div>
-                ))}
+                  ))}
               </CardContent>
             </Card>
           </div>
@@ -333,18 +352,25 @@ export default function Home() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-muted-foreground text-sm">
-                  {IS_PRESEASON ? "El torneo aún no ha comenzado" : !topAssists || topAssists.length === 0 ? "Sin datos aún" : ""}
+                  {IS_PRESEASON
+                    ? "El torneo aún no ha comenzado"
+                    : !topAssists || topAssists.length === 0
+                      ? "Sin datos aún"
+                      : ""}
                 </p>
-                {!IS_PRESEASON && topAssists?.map((ps: any, i: number) => (
-                  <div key={ps.player_id} className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
-                      <TeamLogo team={ps.team} size={20} />
-                      <span className="text-sm font-medium">#{ps.player?.jersey_number} {ps.player?.name}</span>
+                {!IS_PRESEASON &&
+                  topAssists?.map((ps: any, i: number) => (
+                    <div key={ps.player_id} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
+                        <TeamLogo team={ps.team} size={20} />
+                        <span className="text-sm font-medium">
+                          #{ps.player?.jersey_number} {ps.player?.name}
+                        </span>
+                      </div>
+                      <span className="font-display font-bold">{ps.assists}</span>
                     </div>
-                    <span className="font-display font-bold">{ps.assists}</span>
-                  </div>
-                ))}
+                  ))}
               </CardContent>
             </Card>
           </div>
@@ -354,25 +380,35 @@ export default function Home() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-muted-foreground text-sm">
-                  {IS_PRESEASON ? "El torneo aún no ha comenzado" : !standings || standings.filter((s: any) => s.played > 0).length === 0 ? "Sin datos aún" : ""}
+                  {IS_PRESEASON
+                    ? "El torneo aún no ha comenzado"
+                    : !standings || standings.filter((s: any) => s.played > 0).length === 0
+                      ? "Sin datos aún"
+                      : ""}
                 </p>
-                {!IS_PRESEASON && standings?.filter((s: any) => s.played > 0).sort((a: any, b: any) => {
-                  const gaaA = a.played > 0 ? a.gc / a.played : 999;
-                  const gaaB = b.played > 0 ? b.gc / b.played : 999;
-                  return gaaA - gaaB;
-                }).map((s: any, i: number) => (
-                  <div key={s.team_id} className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
-                      <TeamLogo team={s.team} size={20} />
-                      <span className="text-sm font-medium">{s.team?.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-display font-bold">{(s.gc / s.played).toFixed(2)}</span>
-                      <span className="text-muted-foreground text-xs ml-1">({s.gc}GC / {s.played}PJ)</span>
-                    </div>
-                  </div>
-                ))}
+                {!IS_PRESEASON &&
+                  standings
+                    ?.filter((s: any) => s.played > 0)
+                    .sort((a: any, b: any) => {
+                      const gaaA = a.played > 0 ? a.gc / a.played : 999;
+                      const gaaB = b.played > 0 ? b.gc / b.played : 999;
+                      return gaaA - gaaB;
+                    })
+                    .map((s: any, i: number) => (
+                      <div key={s.team_id} className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-sm w-5">{i + 1}.</span>
+                          <TeamLogo team={s.team} size={20} />
+                          <span className="text-sm font-medium">{s.team?.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-display font-bold">{(s.gc / s.played).toFixed(2)}</span>
+                          <span className="text-muted-foreground text-xs ml-1">
+                            ({s.gc}GC / {s.played}PJ)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
               </CardContent>
             </Card>
           </div>
