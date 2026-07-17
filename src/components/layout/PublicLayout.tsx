@@ -11,6 +11,7 @@ const navLinks = [
 { to: "/schedule", label: "Programación" },
 { to: "/standings", label: "Posiciones" },
 { to: "/players", label: "Jugadores" },
+{ to: "/estadisticas", label: "Estadísticas" },
 { to: "/playoffs", label: "Playoffs" },
 { to: "/skills", label: "Skills" },
 { to: "/editions", label: "Ediciones" }];
