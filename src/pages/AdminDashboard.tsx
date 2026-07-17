@@ -18,6 +18,84 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
+const COLOR_PALETTE = [
+  "#0f1117",
+  "#1a1a2e",
+  "#16213e",
+  "#0a0a0a",
+  "#2a2a3e",
+  "#ff1493",
+  "#e91e63",
+  "#cc2200",
+  "#8b1a1a",
+  "#d81b60",
+  "#00b4d8",
+  "#0077b6",
+  "#0284c7",
+  "#38bdf8",
+  "#3b82f6",
+  "#a8d400",
+  "#65a30d",
+  "#22c55e",
+  "#16a34a",
+  "#84cc16",
+  "#e8722a",
+  "#f97316",
+  "#f59e0b",
+  "#facc15",
+  "#fb923c",
+  "#7c3aed",
+  "#a855f7",
+  "#6d28d9",
+  "#ffffff",
+  "#f5f5f0",
+  "#c0c0c0",
+  "#94a3b8",
+  "#475569",
+  "#1e293b",
+];
+
+function ColorSwatchPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-12 h-10 rounded border border-border cursor-pointer shrink-0"
+        />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono" placeholder="#000000" />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {COLOR_PALETTE.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            title={hex}
+            onClick={() => onChange(hex)}
+            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
+              value.toLowerCase() === hex.toLowerCase()
+                ? "border-foreground ring-2 ring-offset-1 ring-foreground/50"
+                : "border-border/50"
+            }`}
+            style={{ background: hex }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +168,9 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
       if (!session) navigate("/admin/login");
@@ -139,7 +219,10 @@ export default function AdminDashboard() {
   const resetResults = async () => {
     setResetting(true);
     try {
-      const { data: matchRows, error: mErr } = await supabase.from("matches").select("id").eq("tournament_id", activeTournamentId);
+      const { data: matchRows, error: mErr } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("tournament_id", activeTournamentId);
       if (mErr) throw mErr;
       const matchIds = (matchRows || []).map((m: any) => m.id);
       if (matchIds.length > 0) {
@@ -148,9 +231,16 @@ export default function AdminDashboard() {
         const { error: pErr } = await supabase.from("penalty_events").delete().in("match_id", matchIds);
         if (pErr) throw pErr;
       }
-      const { error: uErr } = await supabase.from("matches").update({
-        reg_home_score: 0, reg_away_score: 0, status: "scheduled", winner_team_id: null,
-      }).eq("tournament_id", activeTournamentId).eq("stage", "REGULAR");
+      const { error: uErr } = await supabase
+        .from("matches")
+        .update({
+          reg_home_score: 0,
+          reg_away_score: 0,
+          status: "scheduled",
+          winner_team_id: null,
+        })
+        .eq("tournament_id", activeTournamentId)
+        .eq("stage", "REGULAR");
       if (uErr) throw uErr;
       toast({ title: "Resultados eliminados correctamente" });
       setResetOpen(false);
@@ -202,15 +292,18 @@ export default function AdminDashboard() {
 
   if (loading || checkingAdmin) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
   if (!session) return null;
-  if (isAdmin === false) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-2xl font-bold">Acceso denegado</h1>
-        <p className="text-muted-foreground">No tienes permisos de administrador.</p>
-        <Button variant="outline" onClick={handleLogout}>Cerrar sesión</Button>
+  if (isAdmin === false)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">Acceso denegado</h1>
+          <p className="text-muted-foreground">No tienes permisos de administrador.</p>
+          <Button variant="outline" onClick={handleLogout}>
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   // Sort: live first, then scheduled, then final, then locked (locked sorted by start_time)
   const sortedMatches = [...(matches || [])].sort((a: any, b: any) => {
@@ -251,7 +344,10 @@ export default function AdminDashboard() {
       <header className="bg-secondary text-secondary-foreground border-b border-border">
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-1 text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors">
+            <Link
+              to="/"
+              className="flex items-center gap-1 text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors"
+            >
               <ChevronLeft className="w-4 h-4" />
               Sitio
             </Link>
@@ -306,8 +402,12 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={creating}>Cancelar</Button>
-                <Button onClick={createEdition} disabled={creating}>{creating ? "Creando..." : "Crear edición"}</Button>
+                <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={creating}>
+                  Cancelar
+                </Button>
+                <Button onClick={createEdition} disabled={creating}>
+                  {creating ? "Creando..." : "Crear edición"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -323,7 +423,9 @@ export default function AdminDashboard() {
                       {statusLabels[match.status]}
                     </Badge>
                     {match.notes?.toUpperCase().includes("APLAZADO") && (
-                      <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">Aplazado</Badge>
+                      <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
+                        Aplazado
+                      </Badge>
                     )}
                     <span className="text-xs text-muted-foreground">#{match.match_number}</span>
                     <Badge variant="outline" className="text-xs">
@@ -339,8 +441,16 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  <Button size="sm" variant={match.status === "live" ? "default" : "outline"} onClick={() => navigate(`/admin/match/${match.id}`)}>
-                    {match.status === "scheduled" ? "Gestionar" : match.status === "live" ? "🔴 En Juego" : "Ver Detalle"}
+                  <Button
+                    size="sm"
+                    variant={match.status === "live" ? "default" : "outline"}
+                    onClick={() => navigate(`/admin/match/${match.id}`)}
+                  >
+                    {match.status === "scheduled"
+                      ? "Gestionar"
+                      : match.status === "live"
+                        ? "🔴 En Juego"
+                        : "Ver Detalle"}
                   </Button>
                 </div>
               </CardContent>
@@ -350,10 +460,14 @@ export default function AdminDashboard() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/admin/plantillas">
-            <Button variant="outline"><Users className="w-4 h-4 mr-1" /> Plantillas</Button>
+            <Button variant="outline">
+              <Users className="w-4 h-4 mr-1" /> Plantillas
+            </Button>
           </Link>
           <Link to="/admin/apariencia">
-            <Button variant="outline"><Palette className="w-4 h-4 mr-1" /> Apariencia</Button>
+            <Button variant="outline">
+              <Palette className="w-4 h-4 mr-1" /> Apariencia
+            </Button>
           </Link>
           <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
             <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
@@ -375,32 +489,20 @@ export default function AdminDashboard() {
                   { label: "Color de títulos", value: titleColor, set: setTitleColor },
                   { label: "Color de texto", value: textColor, set: setTextColor },
                 ].map((f) => (
-                  <div key={f.label}>
-                    <Label>{f.label}</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={f.value}
-                        onChange={(e) => f.set(e.target.value)}
-                        className="w-12 h-10 rounded border border-border cursor-pointer"
-                      />
-                      <Input
-                        value={f.value}
-                        onChange={(e) => f.set(e.target.value)}
-                        className="font-mono"
-                        placeholder="#000000"
-                      />
-                    </div>
-                  </div>
+                  <ColorSwatchPicker key={f.label} label={f.label} value={f.value} onChange={f.set} />
                 ))}
 
                 <div>
                   <Label>Fuente</Label>
                   <Select value={fontFamily} onValueChange={setFontFamily}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {FONT_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -432,13 +534,23 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="border rounded-md overflow-hidden" style={{ background: bgColor, color: textColor, fontFamily: `'${fontFamily}', sans-serif`, fontSize: `${fontSize}px` }}>
+              <div
+                className="border rounded-md overflow-hidden"
+                style={{
+                  background: bgColor,
+                  color: textColor,
+                  fontFamily: `'${fontFamily}', sans-serif`,
+                  fontSize: `${fontSize}px`,
+                }}
+              >
                 <div className="text-xs text-muted-foreground p-2 bg-muted/30">Vista previa</div>
                 <div className="px-4 py-3" style={{ background: headerColor, color: "#fff" }}>
                   Header simulado
                 </div>
                 <div className="p-4 space-y-2">
-                  <div className="font-bold text-xl" style={{ color: titleColor }}>Título de sección</div>
+                  <div className="font-bold text-xl" style={{ color: titleColor }}>
+                    Título de sección
+                  </div>
                   <p>Texto de ejemplo con la tipografía y tamaño seleccionados.</p>
                   <button
                     type="button"
@@ -467,7 +579,8 @@ export default function AdminDashboard() {
         <div className="mt-8 border-2 border-destructive/60 rounded-lg p-5 bg-destructive/5">
           <h3 className="font-display text-lg font-bold uppercase text-destructive mb-2">Zona de Peligro</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Borra todos los goles, sanciones y marcadores del torneo activo. No afecta equipos, jugadores ni el calendario.
+            Borra todos los goles, sanciones y marcadores del torneo activo. No afecta equipos, jugadores ni el
+            calendario.
           </p>
           <Button variant="destructive" onClick={() => setResetOpen(true)}>
             <Trash2 className="w-4 h-4 mr-1" /> Borrar Resultados
@@ -476,12 +589,17 @@ export default function AdminDashboard() {
 
         <Dialog open={resetOpen} onOpenChange={setResetOpen}>
           <DialogContent>
-            <DialogHeader><DialogTitle>¿Estás seguro?</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>¿Estás seguro?</DialogTitle>
+            </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Esta acción borrará TODOS los goles, sanciones y marcadores del torneo activo. No afecta equipos, jugadores ni el calendario. Esta acción es IRREVERSIBLE.
+              Esta acción borrará TODOS los goles, sanciones y marcadores del torneo activo. No afecta equipos,
+              jugadores ni el calendario. Esta acción es IRREVERSIBLE.
             </p>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetting}>Cancelar</Button>
+              <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetting}>
+                Cancelar
+              </Button>
               <Button variant="destructive" onClick={resetResults} disabled={resetting}>
                 {resetting ? "Borrando..." : "Confirmar y borrar"}
               </Button>
