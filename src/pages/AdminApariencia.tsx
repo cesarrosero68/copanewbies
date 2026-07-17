@@ -30,10 +30,53 @@ const FONTS = [
   { value: "bebas-neue", label: "Bebas Neue" },
 ];
 
+const COLOR_PALETTE = [
+  "#0f1117",
+  "#1a1a2e",
+  "#16213e",
+  "#0a0a0a",
+  "#2a2a3e",
+  "#ff1493",
+  "#e91e63",
+  "#cc2200",
+  "#8b1a1a",
+  "#d81b60",
+  "#00b4d8",
+  "#0077b6",
+  "#0284c7",
+  "#38bdf8",
+  "#3b82f6",
+  "#a8d400",
+  "#65a30d",
+  "#22c55e",
+  "#16a34a",
+  "#84cc16",
+  "#e8722a",
+  "#f97316",
+  "#f59e0b",
+  "#facc15",
+  "#fb923c",
+  "#7c3aed",
+  "#a855f7",
+  "#6d28d9",
+  "#ffffff",
+  "#f5f5f0",
+  "#c0c0c0",
+  "#94a3b8",
+  "#475569",
+  "#1e293b",
+];
+
 // WCAG contrast helpers
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "");
-  const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
   const num = parseInt(n, 16);
   return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
 }
@@ -49,7 +92,9 @@ function contrast(a: string, b: string) {
     const la = luminance(hexToRgb(a));
     const lb = luminance(hexToRgb(b));
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-  } catch { return 21; }
+  } catch {
+    return 21;
+  }
 }
 
 function applyTheme(t: any) {
@@ -69,12 +114,16 @@ export default function AdminApariencia() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s); setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      setLoading(false);
       if (!s) navigate("/admin/login");
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); setLoading(false);
+      setSession(session);
+      setLoading(false);
       if (!session) navigate("/admin/login");
     });
     return () => subscription.unsubscribe();
@@ -83,7 +132,12 @@ export default function AdminApariencia() {
   const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
     queryKey: ["is-admin", session?.user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", session!.user.id).eq("role", "admin").maybeSingle();
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session!.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
       return !!data;
     },
     enabled: !!session,
@@ -92,29 +146,41 @@ export default function AdminApariencia() {
   const { data: theme } = useQuery({
     queryKey: ["site-theme"],
     queryFn: async () => {
-      const { data } = await (supabase.from("site_theme" as any).select("*").eq("id", 1).maybeSingle() as any);
+      const { data } = await (supabase
+        .from("site_theme" as any)
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle() as any);
       return (data || DEFAULTS) as any;
     },
   });
 
   const [draft, setDraft] = useState<any>(DEFAULTS);
-  useEffect(() => { if (theme) setDraft({ ...DEFAULTS, ...theme }); }, [theme]);
+  useEffect(() => {
+    if (theme) setDraft({ ...DEFAULTS, ...theme });
+  }, [theme]);
 
-  const contrastRatio = useMemo(() => contrast(draft.background_color, draft.text_color), [draft.background_color, draft.text_color]);
+  const contrastRatio = useMemo(
+    () => contrast(draft.background_color, draft.text_color),
+    [draft.background_color, draft.text_color],
+  );
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.from("site_theme" as any).update({
-        primary_color: draft.primary_color,
-        accent_color: draft.accent_color,
-        background_color: draft.background_color,
-        text_color: draft.text_color,
-        border_color: draft.border_color,
-        font_size_base: draft.font_size_base,
-        font_family: draft.font_family,
-        logo_url: draft.logo_url || null,
-        updated_at: new Date().toISOString(),
-      }).eq("id", 1) as any);
+      const { error } = await (supabase
+        .from("site_theme" as any)
+        .update({
+          primary_color: draft.primary_color,
+          accent_color: draft.accent_color,
+          background_color: draft.background_color,
+          text_color: draft.text_color,
+          border_color: draft.border_color,
+          font_size_base: draft.font_size_base,
+          font_family: draft.font_family,
+          logo_url: draft.logo_url || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1) as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -133,8 +199,29 @@ export default function AdminApariencia() {
     <div>
       <Label>{label}</Label>
       <div className="flex gap-2 items-center">
-        <input type="color" value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} className="w-12 h-10 rounded border border-border cursor-pointer" />
+        <input
+          type="color"
+          value={draft[k]}
+          onChange={(e) => setDraft({ ...draft, [k]: e.target.value })}
+          className="w-12 h-10 rounded border border-border cursor-pointer"
+        />
         <Input value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} className="font-mono" />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {COLOR_PALETTE.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            title={hex}
+            onClick={() => setDraft({ ...draft, [k]: hex })}
+            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
+              draft[k]?.toLowerCase() === hex.toLowerCase()
+                ? "border-foreground ring-2 ring-offset-1 ring-foreground/50"
+                : "border-border/50"
+            }`}
+            style={{ background: hex }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -143,7 +230,10 @@ export default function AdminApariencia() {
     <div className="min-h-screen bg-background">
       <header className="bg-secondary text-secondary-foreground border-b border-border">
         <div className="container flex items-center justify-between h-14">
-          <Link to="/admin" className="flex items-center gap-1 text-sm text-secondary-foreground/70 hover:text-secondary-foreground">
+          <Link
+            to="/admin"
+            className="flex items-center gap-1 text-sm text-secondary-foreground/70 hover:text-secondary-foreground"
+          >
             <ChevronLeft className="w-4 h-4" /> Admin
           </Link>
           <h1 className="font-display text-lg font-bold uppercase">Apariencia</h1>
@@ -161,22 +251,40 @@ export default function AdminApariencia() {
 
           <div>
             <Label>Tamaño de fuente base: {draft.font_size_base}px</Label>
-            <input type="range" min={12} max={20} step={1} value={parseInt(draft.font_size_base)} onChange={(e) => setDraft({ ...draft, font_size_base: e.target.value })} className="w-full" />
+            <input
+              type="range"
+              min={12}
+              max={20}
+              step={1}
+              value={parseInt(draft.font_size_base)}
+              onChange={(e) => setDraft({ ...draft, font_size_base: e.target.value })}
+              className="w-full"
+            />
           </div>
 
           <div>
             <Label>Familia tipográfica</Label>
             <Select value={draft.font_family} onValueChange={(v) => setDraft({ ...draft, font_family: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {FONTS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                {FONTS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <Label>URL del logo</Label>
-            <Input value={draft.logo_url || ""} onChange={(e) => setDraft({ ...draft, logo_url: e.target.value })} placeholder="https://..." />
+            <Input
+              value={draft.logo_url || ""}
+              onChange={(e) => setDraft({ ...draft, logo_url: e.target.value })}
+              placeholder="https://..."
+            />
             {draft.logo_url && <img src={draft.logo_url} alt="logo" className="mt-2 h-16 rounded" />}
           </div>
 
@@ -198,12 +306,29 @@ export default function AdminApariencia() {
 
         <div>
           <Label>Vista previa</Label>
-          <div style={{ background: draft.background_color, color: draft.text_color, fontSize: `${draft.font_size_base}px` }} className="mt-2 p-6 rounded-lg border-2" >
+          <div
+            style={{
+              background: draft.background_color,
+              color: draft.text_color,
+              fontSize: `${draft.font_size_base}px`,
+            }}
+            className="mt-2 p-6 rounded-lg border-2"
+          >
             <h2 className="font-display text-3xl font-bold mb-2">Copa Newbies</h2>
             <p className="mb-4 opacity-80">Este es un párrafo de ejemplo para previsualizar el tema.</p>
             <div className="flex gap-2 mb-4">
-              <button style={{ background: draft.primary_color, color: draft.text_color }} className="px-4 py-2 rounded-md font-medium">Botón Primario</button>
-              <button style={{ background: draft.accent_color, color: draft.background_color }} className="px-4 py-2 rounded-md font-medium">Botón Acento</button>
+              <button
+                style={{ background: draft.primary_color, color: draft.text_color }}
+                className="px-4 py-2 rounded-md font-medium"
+              >
+                Botón Primario
+              </button>
+              <button
+                style={{ background: draft.accent_color, color: draft.background_color }}
+                className="px-4 py-2 rounded-md font-medium"
+              >
+                Botón Acento
+              </button>
             </div>
             <div style={{ borderColor: draft.border_color }} className="border-2 rounded-md p-4">
               <div className="font-semibold mb-1">Tarjeta de ejemplo</div>
