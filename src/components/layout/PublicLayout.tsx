@@ -38,7 +38,7 @@ export default function PublicLayout() {
           <Link to="/" className="flex items-center gap-3">
             <img alt="Copa Newbies II" className="h-10 w-10 rounded-full object-cover" src="/lovable-uploads/51c394b7-5ebc-4efb-aa3a-db5798c04ef0.png" />
             <span className="font-display text-xl font-bold tracking-wide uppercase">
-              Copa Newbies <span className="text-primary">II</span>
+              Copa Newbies <span className="text-primary">III</span>
             </span>
           </Link>
 
