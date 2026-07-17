@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, R
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { TOURNAMENT_ID as LEGACY_TOURNAMENT_ID } from "@/lib/tournament";
+import { applyEditionTheme } from "@/lib/theme";
 
 export interface TournamentEdition {
   id: string;
@@ -14,6 +15,13 @@ export interface TournamentEdition {
   primary_color: string | null;
   hero_logo_url: string | null;
   logo_url: string | null;
+  header_color: string | null;
+  footer_color: string | null;
+  bg_color: string | null;
+  title_color: string | null;
+  text_color: string | null;
+  font_family: string | null;
+  font_size: string | null;
 }
 
 interface TournamentContextValue {
@@ -42,7 +50,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url")
+      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size")
       .order("year", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     setTournaments((data ?? []) as unknown as TournamentEdition[]);
@@ -72,15 +80,21 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const isViewingActive = !currentTournament || currentTournament.id === activeTournamentId;
   const isReadOnly = !isViewingActive;
 
-  // Apply the viewed edition's primary color to the theme on every switch.
+  // Apply the viewed edition's full appearance theme on every switch.
   useEffect(() => {
     if (!currentTournament) return;
-    const color = currentTournament.primary_color;
-    if (color) {
-      document.documentElement.style.setProperty("--primary", color);
-      document.documentElement.style.setProperty("--primary-foreground", "#ffffff");
-    }
-  }, [currentTournament?.id, currentTournament?.primary_color]);
+    applyEditionTheme(currentTournament);
+  }, [
+    currentTournament?.id,
+    currentTournament?.primary_color,
+    currentTournament?.header_color,
+    currentTournament?.footer_color,
+    currentTournament?.bg_color,
+    currentTournament?.title_color,
+    currentTournament?.text_color,
+    currentTournament?.font_family,
+    currentTournament?.font_size,
+  ]);
 
   const setEdition = useCallback(
     (id: string) => {
