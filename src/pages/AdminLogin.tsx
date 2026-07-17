@@ -12,18 +12,32 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      toast({ title: "Error de autenticación", description: error.message, variant: "destructive" });
+    if (mode === "signup") {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + "/admin" },
+      });
+      if (error) {
+        toast({ title: "Error al registrar", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Cuenta creada", description: "Ahora puedes iniciar sesión." });
+        setMode("login");
+      }
     } else {
-      navigate("/admin");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast({ title: "Error de autenticación", description: error.message, variant: "destructive" });
+      } else {
+        navigate("/admin");
+      }
     }
     setLoading(false);
   };
@@ -37,7 +51,9 @@ export default function AdminLogin() {
             Volver al sitio
           </Link>
           <span className="text-4xl mb-2 block">🏒</span>
-          <CardTitle className="font-display text-2xl uppercase">Admin Panel</CardTitle>
+          <CardTitle className="font-display text-2xl uppercase">
+            {mode === "signup" ? "Crear cuenta" : "Admin Panel"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -62,8 +78,15 @@ export default function AdminLogin() {
 
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Ingresando..." : "Ingresar"}
+              {loading ? "Procesando..." : mode === "signup" ? "Registrarse" : "Ingresar"}
             </Button>
+            <button
+              type="button"
+              onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+              className="text-xs text-muted-foreground hover:text-foreground w-full text-center"
+            >
+              {mode === "signup" ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
+            </button>
           </form>
         </CardContent>
       </Card>
