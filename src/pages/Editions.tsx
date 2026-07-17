@@ -8,13 +8,14 @@ export default function Editions() {
   const { tournaments, activeTournament, setEdition, clearEdition, loading } = useTournament();
   const navigate = useNavigate();
 
-  const handleView = (id: string, isActive: boolean) => {
+const handleView = (id: string, isActive: boolean) => {
     if (isActive) {
       clearEdition();
+      navigate("/");
     } else {
       setEdition(id);
+      navigate("/?edition=" + id);
     }
-    navigate("/");
   };
 
   return (
