@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { applyEditionTheme, FONT_OPTIONS } from "@/lib/theme";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
@@ -31,13 +33,28 @@ export default function AdminDashboard() {
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [appearanceColor, setAppearanceColor] = useState<string>("#ff1493");
   const [appearanceLogo, setAppearanceLogo] = useState<string>("");
+  const [headerColor, setHeaderColor] = useState<string>("#1a1a2e");
+  const [footerColor, setFooterColor] = useState<string>("#1a1a2e");
+  const [bgColor, setBgColor] = useState<string>("#ffffff");
+  const [titleColor, setTitleColor] = useState<string>("#ff1493");
+  const [textColor, setTextColor] = useState<string>("#1a1a2e");
+  const [fontFamily, setFontFamily] = useState<string>("inter");
+  const [fontSize, setFontSize] = useState<string>("16");
   const [savingAppearance, setSavingAppearance] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
     if (activeTournament) {
-      setAppearanceColor((activeTournament as any).primary_color || "#ff1493");
-      setAppearanceLogo((activeTournament as any).hero_logo_url || "");
+      const t = activeTournament as any;
+      setAppearanceColor(t.primary_color || "#ff1493");
+      setAppearanceLogo(t.hero_logo_url || "");
+      setHeaderColor(t.header_color || "#1a1a2e");
+      setFooterColor(t.footer_color || "#1a1a2e");
+      setBgColor(t.bg_color || "#ffffff");
+      setTitleColor(t.title_color || "#ff1493");
+      setTextColor(t.text_color || "#1a1a2e");
+      setFontFamily(t.font_family || "inter");
+      setFontSize(t.font_size || "16");
     }
   }, [activeTournament]);
 
@@ -45,14 +62,24 @@ export default function AdminDashboard() {
     if (!activeTournamentId) return;
     setSavingAppearance(true);
     try {
+      const patch = {
+        primary_color: appearanceColor,
+        hero_logo_url: appearanceLogo || null,
+        header_color: headerColor,
+        footer_color: footerColor,
+        bg_color: bgColor,
+        title_color: titleColor,
+        text_color: textColor,
+        font_family: fontFamily,
+        font_size: fontSize,
+      };
       const { error } = await supabase
         .from("tournaments")
-        .update({ primary_color: appearanceColor, hero_logo_url: appearanceLogo || null } as any)
+        .update(patch as any)
         .eq("id", activeTournamentId);
       if (error) throw error;
-      document.documentElement.style.setProperty("--primary", appearanceColor);
-      document.documentElement.style.setProperty("--primary-foreground", "#ffffff");
-      toast({ title: "Apariencia guardada" });
+      applyEditionTheme(patch);
+      toast({ title: "Apariencia guardada y aplicada" });
       setAppearanceOpen(false);
       await refreshTournaments();
     } catch (e: any) {
