@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toBogotaDate } from "@/lib/dateUtils";
 import TeamLogo from "@/components/TeamLogo";
+import { useTournament } from "@/lib/tournamentContext";
 
 const teamColorMap: Record<string, string> = {
   vikings: "bg-team-vikings",
@@ -20,17 +21,20 @@ const teamColorMap: Record<string, string> = {
 export default function MatchDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
+  const { tournamentId } = useTournament();
 
   const { data: match } = useQuery({
-    queryKey: ["match", id],
+    queryKey: ["match", id, tournamentId],
     queryFn: async () => {
       const { data } = await supabase
         .from("matches")
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
         .eq("id", id)
+        .eq("tournament_id", tournamentId)
         .single();
       return data;
     },
+    enabled: !!id && !!tournamentId,
   });
 
   const { data: goalEvents } = useQuery({

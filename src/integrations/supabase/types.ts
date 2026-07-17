@@ -670,7 +670,12 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          bg_color: string | null
           created_at: string
+          font_family: string | null
+          font_size: string | null
+          footer_color: string | null
+          header_color: string | null
           hero_logo_url: string | null
           id: string
           logo_url: string | null
@@ -680,10 +685,17 @@ export type Database = {
           season: string
           semester: string | null
           status: string
+          text_color: string | null
+          title_color: string | null
           year: number | null
         }
         Insert: {
+          bg_color?: string | null
           created_at?: string
+          font_family?: string | null
+          font_size?: string | null
+          footer_color?: string | null
+          header_color?: string | null
           hero_logo_url?: string | null
           id?: string
           logo_url?: string | null
@@ -693,10 +705,17 @@ export type Database = {
           season: string
           semester?: string | null
           status?: string
+          text_color?: string | null
+          title_color?: string | null
           year?: number | null
         }
         Update: {
+          bg_color?: string | null
           created_at?: string
+          font_family?: string | null
+          font_size?: string | null
+          footer_color?: string | null
+          header_color?: string | null
           hero_logo_url?: string | null
           id?: string
           logo_url?: string | null
@@ -706,6 +725,8 @@ export type Database = {
           season?: string
           semester?: string | null
           status?: string
+          text_color?: string | null
+          title_color?: string | null
           year?: number | null
         }
         Relationships: []

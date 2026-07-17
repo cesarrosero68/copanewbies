@@ -30,7 +30,10 @@ export default function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-secondary text-secondary-foreground">
+      <header
+        className="sticky top-0 z-50 border-b border-border bg-secondary text-secondary-foreground"
+        style={{ background: "var(--header-bg, hsl(var(--secondary)))" }}
+      >
         {isReadOnly && currentTournament && (
           <div className="bg-amber-500 text-white text-center text-sm py-2 px-4 flex flex-wrap gap-2 items-center justify-center">
             <span>Viendo edición: <strong>{currentTournament.name}</strong> — Solo lectura</span>
@@ -115,9 +118,23 @@ export default function PublicLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-secondary text-secondary-foreground/60 py-6">
+      <footer
+        className="border-t border-border bg-secondary text-secondary-foreground/80 py-6"
+        style={{ background: "var(--footer-bg, hsl(var(--secondary)))" }}
+      >
         <div className="container text-center text-sm">
-          <p>Copa Newbies II • Hockey 2026 • Dashboard Público</p>
+          <p>
+            Copa Newbies Colombia · Creado por{" "}
+            <a
+              href="https://www.instagram.com/hlc_hockeycolombia"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Fundación HLC
+            </a>{" "}
+            (César Rosero)
+          </p>
         </div>
       </footer>
     </div>);

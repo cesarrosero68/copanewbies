@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { applyEditionTheme, FONT_OPTIONS } from "@/lib/theme";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
@@ -31,13 +33,28 @@ export default function AdminDashboard() {
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [appearanceColor, setAppearanceColor] = useState<string>("#ff1493");
   const [appearanceLogo, setAppearanceLogo] = useState<string>("");
+  const [headerColor, setHeaderColor] = useState<string>("#1a1a2e");
+  const [footerColor, setFooterColor] = useState<string>("#1a1a2e");
+  const [bgColor, setBgColor] = useState<string>("#ffffff");
+  const [titleColor, setTitleColor] = useState<string>("#ff1493");
+  const [textColor, setTextColor] = useState<string>("#1a1a2e");
+  const [fontFamily, setFontFamily] = useState<string>("inter");
+  const [fontSize, setFontSize] = useState<string>("16");
   const [savingAppearance, setSavingAppearance] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
     if (activeTournament) {
-      setAppearanceColor((activeTournament as any).primary_color || "#ff1493");
-      setAppearanceLogo((activeTournament as any).hero_logo_url || "");
+      const t = activeTournament as any;
+      setAppearanceColor(t.primary_color || "#ff1493");
+      setAppearanceLogo(t.hero_logo_url || "");
+      setHeaderColor(t.header_color || "#1a1a2e");
+      setFooterColor(t.footer_color || "#1a1a2e");
+      setBgColor(t.bg_color || "#ffffff");
+      setTitleColor(t.title_color || "#ff1493");
+      setTextColor(t.text_color || "#1a1a2e");
+      setFontFamily(t.font_family || "inter");
+      setFontSize(t.font_size || "16");
     }
   }, [activeTournament]);
 
@@ -45,14 +62,24 @@ export default function AdminDashboard() {
     if (!activeTournamentId) return;
     setSavingAppearance(true);
     try {
+      const patch = {
+        primary_color: appearanceColor,
+        hero_logo_url: appearanceLogo || null,
+        header_color: headerColor,
+        footer_color: footerColor,
+        bg_color: bgColor,
+        title_color: titleColor,
+        text_color: textColor,
+        font_family: fontFamily,
+        font_size: fontSize,
+      };
       const { error } = await supabase
         .from("tournaments")
-        .update({ primary_color: appearanceColor, hero_logo_url: appearanceLogo || null } as any)
+        .update(patch as any)
         .eq("id", activeTournamentId);
       if (error) throw error;
-      document.documentElement.style.setProperty("--primary", appearanceColor);
-      document.documentElement.style.setProperty("--primary-foreground", "#ffffff");
-      toast({ title: "Apariencia guardada" });
+      applyEditionTheme(patch);
+      toast({ title: "Apariencia guardada y aplicada" });
       setAppearanceOpen(false);
       await refreshTournaments();
     } catch (e: any) {
@@ -334,28 +361,65 @@ export default function AdminDashboard() {
         </div>
 
         <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Apariencia de la edición activa</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label>Color primario</Label>
-                <div className="flex items-center gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: "Color primario / acento", value: appearanceColor, set: setAppearanceColor },
+                  { label: "Fondo del header", value: headerColor, set: setHeaderColor },
+                  { label: "Fondo del footer", value: footerColor, set: setFooterColor },
+                  { label: "Fondo de página", value: bgColor, set: setBgColor },
+                  { label: "Color de títulos", value: titleColor, set: setTitleColor },
+                  { label: "Color de texto", value: textColor, set: setTextColor },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <Label>{f.label}</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={f.value}
+                        onChange={(e) => f.set(e.target.value)}
+                        className="w-12 h-10 rounded border border-border cursor-pointer"
+                      />
+                      <Input
+                        value={f.value}
+                        onChange={(e) => f.set(e.target.value)}
+                        className="font-mono"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <div>
+                  <Label>Fuente</Label>
+                  <Select value={fontFamily} onValueChange={setFontFamily}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FONT_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Tamaño base de texto: {fontSize}px</Label>
                   <input
-                    type="color"
-                    value={appearanceColor}
-                    onChange={(e) => setAppearanceColor(e.target.value)}
-                    className="w-12 h-10 rounded border border-border cursor-pointer"
-                  />
-                  <Input
-                    value={appearanceColor}
-                    onChange={(e) => setAppearanceColor(e.target.value)}
-                    className="font-mono"
-                    placeholder="#ff1493"
+                    type="range"
+                    min={12}
+                    max={20}
+                    step={1}
+                    value={Number(fontSize)}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    className="w-full"
                   />
                 </div>
               </div>
+
               <div>
                 <Label>URL del logo (hero)</Label>
                 <Input
@@ -367,18 +431,26 @@ export default function AdminDashboard() {
                   <img src={appearanceLogo} alt="preview" className="mt-2 h-16 rounded object-contain" />
                 )}
               </div>
-              <div className="border rounded-md p-4 bg-muted/30">
-                <div className="text-xs text-muted-foreground mb-2">Vista previa</div>
-                <div className="font-display text-xl font-bold uppercase mb-2">
-                  Copa Newbies <span style={{ color: appearanceColor }}>III</span>
+
+              <div className="border rounded-md overflow-hidden" style={{ background: bgColor, color: textColor, fontFamily: `'${fontFamily}', sans-serif`, fontSize: `${fontSize}px` }}>
+                <div className="text-xs text-muted-foreground p-2 bg-muted/30">Vista previa</div>
+                <div className="px-4 py-3" style={{ background: headerColor, color: "#fff" }}>
+                  Header simulado
                 </div>
-                <button
-                  type="button"
-                  style={{ background: appearanceColor, color: "#ffffff" }}
-                  className="px-4 py-2 rounded-md font-medium text-sm"
-                >
-                  Botón primario
-                </button>
+                <div className="p-4 space-y-2">
+                  <div className="font-bold text-xl" style={{ color: titleColor }}>Título de sección</div>
+                  <p>Texto de ejemplo con la tipografía y tamaño seleccionados.</p>
+                  <button
+                    type="button"
+                    style={{ background: appearanceColor, color: "#ffffff" }}
+                    className="px-4 py-2 rounded-md font-medium text-sm"
+                  >
+                    Botón primario
+                  </button>
+                </div>
+                <div className="px-4 py-3 text-white text-xs" style={{ background: footerColor }}>
+                  Footer simulado
+                </div>
               </div>
             </div>
             <DialogFooter>
