@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Users, Palette, Trash2 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { useTournament } from "@/lib/tournamentContext";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
@@ -25,6 +26,9 @@ export default function AdminDashboard() {
   const [newYear, setNewYear] = useState<string>(String(new Date().getFullYear()));
   const [newSemester, setNewSemester] = useState("");
   const [creating, setCreating] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const qc = useQueryClient();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -71,6 +75,34 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/admin/login");
+  };
+
+  const resetResults = async () => {
+    setResetting(true);
+    try {
+      const { data: matchRows, error: mErr } = await supabase.from("matches").select("id").eq("tournament_id", activeTournamentId);
+      if (mErr) throw mErr;
+      const matchIds = (matchRows || []).map((m: any) => m.id);
+      if (matchIds.length > 0) {
+        const { error: gErr } = await supabase.from("goal_events").delete().in("match_id", matchIds);
+        if (gErr) throw gErr;
+        const { error: pErr } = await supabase.from("penalty_events").delete().in("match_id", matchIds);
+        if (pErr) throw pErr;
+      }
+      const { error: uErr } = await supabase.from("matches").update({
+        reg_home_score: 0, reg_away_score: 0, status: "scheduled", winner_team_id: null,
+      }).eq("tournament_id", activeTournamentId).eq("stage", "REGULAR");
+      if (uErr) throw uErr;
+      toast({ title: "Resultados eliminados correctamente" });
+      setResetOpen(false);
+      qc.invalidateQueries({ queryKey: ["admin-matches"] });
+      qc.invalidateQueries({ queryKey: ["standings"] });
+      qc.invalidateQueries({ queryKey: ["goal_events"] });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setResetting(false);
+    }
   };
 
   const createEdition = async () => {
@@ -256,6 +288,40 @@ export default function AdminDashboard() {
             </Card>
           ))}
         </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link to="/admin/plantillas">
+            <Button variant="outline"><Users className="w-4 h-4 mr-1" /> Plantillas</Button>
+          </Link>
+          <Link to="/admin/apariencia">
+            <Button variant="outline"><Palette className="w-4 h-4 mr-1" /> Apariencia</Button>
+          </Link>
+        </div>
+
+        <div className="mt-8 border-2 border-destructive/60 rounded-lg p-5 bg-destructive/5">
+          <h3 className="font-display text-lg font-bold uppercase text-destructive mb-2">Zona de Peligro</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Borra todos los goles, sanciones y marcadores del torneo activo. No afecta equipos, jugadores ni el calendario.
+          </p>
+          <Button variant="destructive" onClick={() => setResetOpen(true)}>
+            <Trash2 className="w-4 h-4 mr-1" /> Borrar Resultados
+          </Button>
+        </div>
+
+        <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>¿Estás seguro?</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Esta acción borrará TODOS los goles, sanciones y marcadores del torneo activo. No afecta equipos, jugadores ni el calendario. Esta acción es IRREVERSIBLE.
+            </p>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetting}>Cancelar</Button>
+              <Button variant="destructive" onClick={resetResults} disabled={resetting}>
+                {resetting ? "Borrando..." : "Confirmar y borrar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
