@@ -19,7 +19,14 @@ const teamColorMap: Record<string, string> = {
 };
 
 export default function Home() {
-  const { tournamentId } = useTournament();
+  const { tournamentId, viewedTournament } = useTournament();
+  const fullName = viewedTournament?.name ?? "Copa Newbies III";
+  const nameParts = fullName.trim().split(/\s+/);
+  const nameSuffix = nameParts.length > 1 ? nameParts.pop()! : "";
+  const namePrefix = nameParts.join(" ");
+  const heroLogo = viewedTournament?.hero_logo_url || "/lovable-uploads/192672d5-a8d2-4226-8ce6-29a76b5d1b2e.png";
+  const subtitleYear = viewedTournament?.year ?? "";
+  const subtitleSemester = viewedTournament?.semester ?? "";
   const { data: standings } = useQuery({
     queryKey: ["standings", tournamentId],
     queryFn: async () => {
@@ -138,14 +145,16 @@ export default function Home() {
       {/* Hero */}
       <section className="text-center py-12 rounded-xl bg-secondary relative overflow-hidden">
         <img
-          alt="Copa Newbies II"
+          alt={fullName}
           className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg"
-          src="/lovable-uploads/192672d5-a8d2-4226-8ce6-29a76b5d1b2e.png"
+          src={heroLogo}
         />
         <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider text-secondary-foreground">
-          Copa Newbies <span className="text-primary">III</span>
+          {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
         </h1>
-        <p className="mt-3 text-secondary-foreground/70 text-lg">Temporada 2026 - 2 • ¿7 Equipos? • Más de 25 Partidos</p>
+        <p className="mt-3 text-secondary-foreground/70 text-lg">
+          Temporada {subtitleYear}{subtitleSemester ? ` • ${subtitleSemester}` : ""}
+        </p>
       </section>
 
       {/* Recent Results — hidden in PRESEASON */}
