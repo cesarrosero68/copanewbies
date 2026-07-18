@@ -148,7 +148,7 @@ export default function Home() {
       {/* Hero */}
       <section
         className="text-center py-12 rounded-xl bg-secondary relative overflow-hidden"
-        style={{ background: "var(--header-bg, hsl(var(--secondary)))" }}
+        style={{ background: "var(--hero-bg, hsl(var(--secondary)))" }}
       >
         <img alt={fullName} className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg" src={heroLogo} />
         <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider text-secondary-foreground">
