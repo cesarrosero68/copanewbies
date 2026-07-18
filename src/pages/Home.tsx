@@ -19,7 +19,9 @@ const teamColorMap: Record<string, string> = {
 };
 
 export default function Home() {
-  const { tournamentId, viewedTournament } = useTournament();
+  const { tournamentId, viewedTournament, isReadOnly } = useTournament();
+  const withEdition = (path: string) =>
+    isReadOnly && viewedTournament ? `${path}?edition=${viewedTournament.id}` : path;
   const fullName = viewedTournament?.name ?? "Copa Newbies III";
   const nameParts = fullName.trim().split(/\s+/);
   const nameSuffix = nameParts.length > 1 ? nameParts.pop()! : "";
@@ -265,7 +267,10 @@ export default function Home() {
                     <tr key={s.team_id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3 font-bold">{i + 1}</td>
                       <td className="p-3">
-                        <Link to={`/team/${s.team?.slug}`} className="flex items-center gap-2 hover:underline">
+                        <Link
+                          to={withEdition(`/team/${s.team?.slug}`)}
+                          className="flex items-center gap-2 hover:underline"
+                        >
                           <TeamLogo team={s.team} size={36} />
                           {s.team?.name}
                         </Link>
@@ -279,7 +284,7 @@ export default function Home() {
               </table>
             </CardContent>
           </Card>
-          <Link to="/standings" className="text-sm text-primary hover:underline mt-2 inline-block">
+          <Link to={withEdition("/standings")} className="text-sm text-primary hover:underline mt-2 inline-block">
             Ver tabla completa →
           </Link>
         </section>
