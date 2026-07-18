@@ -59,6 +59,7 @@ export interface EditionTheme {
   text_color?: string | null;
   font_family?: string | null;
   font_size?: string | null;
+  hero_color?: string | null;
 }
 
 export function applyEditionTheme(t: EditionTheme) {
@@ -83,6 +84,7 @@ export function applyEditionTheme(t: EditionTheme) {
   // Custom (non-shadcn) vars — raw hex
   if (t.header_color) root.style.setProperty("--header-bg", t.header_color);
   if (t.footer_color) root.style.setProperty("--footer-bg", t.footer_color);
+  if (t.hero_color) root.style.setProperty("--hero-bg", t.hero_color);
   if (t.title_color) root.style.setProperty("--title-color", t.title_color);
 
   if (t.font_size) {
