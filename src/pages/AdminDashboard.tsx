@@ -114,6 +114,7 @@ export default function AdminDashboard() {
   const [headerColor, setHeaderColor] = useState<string>("#1a1a2e");
   const [footerColor, setFooterColor] = useState<string>("#1a1a2e");
   const [bgColor, setBgColor] = useState<string>("#ffffff");
+  const [heroColor, setHeroColor] = useState<string>("#1a1a2e");
   const [titleColor, setTitleColor] = useState<string>("#ff1493");
   const [textColor, setTextColor] = useState<string>("#1a1a2e");
   const [fontFamily, setFontFamily] = useState<string>("inter");
@@ -129,6 +130,7 @@ export default function AdminDashboard() {
       setHeaderColor(t.header_color || "#1a1a2e");
       setFooterColor(t.footer_color || "#1a1a2e");
       setBgColor(t.bg_color || "#ffffff");
+      setHeroColor(t.hero_color || t.header_color || "#1a1a2e");
       setTitleColor(t.title_color || "#ff1493");
       setTextColor(t.text_color || "#1a1a2e");
       setFontFamily(t.font_family || "inter");
@@ -146,6 +148,7 @@ export default function AdminDashboard() {
         header_color: headerColor,
         footer_color: footerColor,
         bg_color: bgColor,
+        hero_color: heroColor,
         title_color: titleColor,
         text_color: textColor,
         font_family: fontFamily,
@@ -486,6 +489,7 @@ export default function AdminDashboard() {
                   { label: "Fondo del header", value: headerColor, set: setHeaderColor },
                   { label: "Fondo del footer", value: footerColor, set: setFooterColor },
                   { label: "Fondo de página", value: bgColor, set: setBgColor },
+                  { label: "Color del hero", value: heroColor, set: setHeroColor },
                   { label: "Color de títulos", value: titleColor, set: setTitleColor },
                   { label: "Color de texto", value: textColor, set: setTextColor },
                 ].map((f) => (
