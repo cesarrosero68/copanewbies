@@ -67,7 +67,7 @@ function BracketMatch({
 }
 
 export default function Playoffs() {
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
   const { data: playoffMatches } = useQuery({
     queryKey: ["playoff-matches", tournamentId],
     queryFn: async () => {

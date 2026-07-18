@@ -12,7 +12,7 @@ import { getBestTimedResultMs, getDirectScoreFromResults, getPointsForPosition }
 import { LogIn } from "lucide-react";
 
 export default function Skills() {
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
   const { players, results, pointScales } = useSkillsCompetitionData({ activeOnly: true, tournamentId });
 
   const byTest = (testNumber: number) => results.filter((result) => result.test_number === testNumber);

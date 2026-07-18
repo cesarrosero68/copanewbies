@@ -24,7 +24,7 @@ function secondsFromMmss(mmss: string | null | undefined) {
 }
 
 export default function Statistics() {
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 30000);
