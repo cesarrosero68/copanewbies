@@ -28,6 +28,8 @@ function BracketMatch({
   const awayTeam = awayTeamResolved;
   const showHomePlaceholder = IS_PRESEASON || !homeTeam;
   const showAwayPlaceholder = IS_PRESEASON || !awayTeam;
+  const { isReadOnly, viewedTournamentId } = useTournament();
+  const withEdition = (path: string) => (isReadOnly ? `${path}?edition=${viewedTournamentId}` : path);
 
   const content = (
     <Card className="w-64 hover:shadow-md transition-shadow">
@@ -37,7 +39,7 @@ function BracketMatch({
           <div className="flex items-center gap-2">
             {!showHomePlaceholder && homeTeam && <TeamLogo team={homeTeam} size={20} />}
             <span className="text-sm font-medium">
-              {showHomePlaceholder ? homePlaceholder : (homeTeam?.name || "TBD")}
+              {showHomePlaceholder ? homePlaceholder : homeTeam?.name || "TBD"}
             </span>
           </div>
           {isPlayed && <span className="font-display font-bold">{match.reg_home_score}</span>}
@@ -46,22 +48,20 @@ function BracketMatch({
           <div className="flex items-center gap-2">
             {!showAwayPlaceholder && awayTeam && <TeamLogo team={awayTeam} size={20} />}
             <span className="text-sm font-medium">
-              {showAwayPlaceholder ? awayPlaceholder : (awayTeam?.name || "TBD")}
+              {showAwayPlaceholder ? awayPlaceholder : awayTeam?.name || "TBD"}
             </span>
           </div>
           {isPlayed && <span className="font-display font-bold">{match.reg_away_score}</span>}
         </div>
         {match?.ot_played && isPlayed && (
-          <p className="text-xs text-muted-foreground mt-1">
-            {match.so_played ? "Penales (SO)" : "Overtime (OT)"}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">{match.so_played ? "Penales (SO)" : "Overtime (OT)"}</p>
         )}
       </CardContent>
     </Card>
   );
 
   if (match && isPlayed) {
-    return <Link to={`/match/${match.id}`}>{content}</Link>;
+    return <Link to={withEdition(`/match/${match.id}`)}>{content}</Link>;
   }
   return content;
 }
@@ -132,9 +132,7 @@ export default function Playoffs() {
   return (
     <div className="container py-8">
       <h1 className="font-display text-4xl font-bold uppercase mb-2">Bracket de Playoffs</h1>
-      <p className="text-muted-foreground mb-8">
-        #1 pasa directo a la Final
-      </p>
+      <p className="text-muted-foreground mb-8">#1 pasa directo a la Final</p>
 
       <div className="overflow-x-auto">
         <div className="flex gap-8 items-center min-w-[900px] py-4">
