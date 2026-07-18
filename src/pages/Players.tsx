@@ -9,7 +9,7 @@ import TeamLogo from "@/components/TeamLogo";
 
 export default function Players() {
   const [teamFilter, setTeamFilter] = useState("all");
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
 
   const { data: teams } = useQuery({
     queryKey: ["teams", tournamentId],

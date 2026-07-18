@@ -21,7 +21,7 @@ const teamColorMap: Record<string, string> = {
 export default function MatchDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
 
   const { data: match } = useQuery({
     queryKey: ["match", id, tournamentId],

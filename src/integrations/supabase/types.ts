@@ -676,6 +676,7 @@ export type Database = {
           font_size: string | null
           footer_color: string | null
           header_color: string | null
+          hero_color: string | null
           hero_logo_url: string | null
           id: string
           logo_url: string | null
@@ -696,6 +697,7 @@ export type Database = {
           font_size?: string | null
           footer_color?: string | null
           header_color?: string | null
+          hero_color?: string | null
           hero_logo_url?: string | null
           id?: string
           logo_url?: string | null
@@ -716,6 +718,7 @@ export type Database = {
           font_size?: string | null
           footer_color?: string | null
           header_color?: string | null
+          hero_color?: string | null
           hero_logo_url?: string | null
           id?: string
           logo_url?: string | null

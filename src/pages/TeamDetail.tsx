@@ -9,7 +9,7 @@ import { useTournament } from "@/lib/tournamentContext";
 
 export default function TeamDetail() {
   const { slug } = useParams();
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
 
   const { data: team } = useQuery({
     queryKey: ["team", slug, tournamentId],

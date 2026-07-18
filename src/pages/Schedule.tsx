@@ -157,7 +157,7 @@ function MatchCard({
 export default function Schedule() {
   const [teamFilter, setTeamFilter] = useState("all");
   const queryClient = useQueryClient();
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
 
   const { data: teams } = useQuery({
     queryKey: ["teams", tournamentId],

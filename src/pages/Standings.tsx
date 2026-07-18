@@ -8,7 +8,7 @@ import TeamLogo from "@/components/TeamLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Standings() {
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
   const { data: standings } = useQuery({
     queryKey: ["standings-full", tournamentId],
     queryFn: async () => {
@@ -93,7 +93,7 @@ export default function Standings() {
 }
 
 function FairPlayTable({ teams }: { teams: any[] }) {
-  const { tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId } = useTournament();
   const { data: penaltyData } = useQuery({
     queryKey: ["fair-play", tournamentId],
     queryFn: async () => {

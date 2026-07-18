@@ -22,6 +22,7 @@ export interface TournamentEdition {
   text_color: string | null;
   font_family: string | null;
   font_size: string | null;
+  hero_color: string | null;
 }
 
 interface TournamentContextValue {
@@ -31,6 +32,7 @@ interface TournamentContextValue {
   viewedTournament: TournamentEdition | null;
   tournamentId: string;
   activeTournamentId: string;
+  viewedTournamentId: string;
   isViewingActive: boolean;
   isReadOnly: boolean;
   loading: boolean;
@@ -50,7 +52,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size")
+      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size,hero_color")
       .order("year", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     setTournaments((data ?? []) as unknown as TournamentEdition[]);
@@ -94,6 +96,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     currentTournament?.text_color,
     currentTournament?.font_family,
     currentTournament?.font_size,
+    currentTournament?.hero_color,
   ]);
 
   const setEdition = useCallback(
@@ -118,6 +121,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     viewedTournament: currentTournament,
     tournamentId,
     activeTournamentId,
+    viewedTournamentId: tournamentId,
     isViewingActive,
     isReadOnly,
     loading,
