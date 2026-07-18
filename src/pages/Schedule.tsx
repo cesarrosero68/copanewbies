@@ -54,9 +54,13 @@ function MatchCard({
   const showAwayPlaceholder = !!awayPlaceholder;
   const homeName = showHomePlaceholder ? homePlaceholder : match.home_team?.name;
   const awayName = showAwayPlaceholder ? awayPlaceholder : match.away_team?.name;
+  const { isReadOnly, viewedTournamentId } = useTournament();
+  const withEdition = (path: string) => (isReadOnly ? `${path}?edition=${viewedTournamentId}` : path);
   return (
-    <Link to={isClickable ? `/match/${match.id}` : "#"}>
-      <Card className={`hover:shadow-md transition-shadow ${isClickable ? "cursor-pointer" : ""} ${isLive ? "border-destructive" : ""}`}>
+    <Link to={isClickable ? withEdition(`/match/${match.id}`) : "#"}>
+      <Card
+        className={`hover:shadow-md transition-shadow ${isClickable ? "cursor-pointer" : ""} ${isLive ? "border-destructive" : ""}`}
+      >
         <CardContent className="p-4">
           {showStage && (
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -74,15 +78,21 @@ function MatchCard({
               {statusLabels[match.status]}
             </Badge>
             {match.notes?.toUpperCase().includes("APLAZADO") && (
-              <Badge className="text-xs shrink-0 bg-amber-500 text-white border-amber-500 hover:bg-amber-600">Aplazado</Badge>
+              <Badge className="text-xs shrink-0 bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
+                Aplazado
+              </Badge>
             )}
 
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {!showHomePlaceholder && <TeamLogo team={match.home_team} size={40} />}
-              <span className={`font-medium text-sm truncate ${showHomePlaceholder ? "text-muted-foreground italic" : ""}`}>{homeName}</span>
+              <span
+                className={`font-medium text-sm truncate ${showHomePlaceholder ? "text-muted-foreground italic" : ""}`}
+              >
+                {homeName}
+              </span>
             </div>
 
-            {(isPlayed || isLive) ? (
+            {isPlayed || isLive ? (
               <div className="font-display text-xl font-bold px-3 shrink-0">
                 {match.reg_home_score} - {match.reg_away_score}
               </div>
@@ -91,14 +101,16 @@ function MatchCard({
             )}
 
             <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <span className={`font-medium text-sm truncate ${showAwayPlaceholder ? "text-muted-foreground italic" : ""}`}>{awayName}</span>
+              <span
+                className={`font-medium text-sm truncate ${showAwayPlaceholder ? "text-muted-foreground italic" : ""}`}
+              >
+                {awayName}
+              </span>
               {!showAwayPlaceholder && <TeamLogo team={match.away_team} size={40} />}
             </div>
 
             <div className="text-xs text-muted-foreground shrink-0 w-28 text-right">
-              {match.start_time
-                ? format(toBogotaDate(match.start_time), "d MMM HH:mm", { locale: es })
-                : "TBD"}
+              {match.start_time ? format(toBogotaDate(match.start_time), "d MMM HH:mm", { locale: es }) : "TBD"}
             </div>
           </div>
 
@@ -112,31 +124,33 @@ function MatchCard({
                 <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">Aplazado</Badge>
               )}
               <span className="text-xs text-muted-foreground">
-                {match.start_time
-                  ? format(toBogotaDate(match.start_time), "d MMM HH:mm", { locale: es })
-                  : "TBD"}
+                {match.start_time ? format(toBogotaDate(match.start_time), "d MMM HH:mm", { locale: es }) : "TBD"}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {!showHomePlaceholder && <TeamLogo team={match.home_team} size={36} />}
-                <span className={`font-medium text-sm truncate ${showHomePlaceholder ? "text-muted-foreground italic" : ""}`}>{homeName}</span>
-              </div>
-              {(isPlayed || isLive) ? (
-                <span className="font-display text-lg font-bold shrink-0">
-                  {match.reg_home_score}
+                <span
+                  className={`font-medium text-sm truncate ${showHomePlaceholder ? "text-muted-foreground italic" : ""}`}
+                >
+                  {homeName}
                 </span>
+              </div>
+              {isPlayed || isLive ? (
+                <span className="font-display text-lg font-bold shrink-0">{match.reg_home_score}</span>
               ) : null}
             </div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {!showAwayPlaceholder && <TeamLogo team={match.away_team} size={36} />}
-                <span className={`font-medium text-sm truncate ${showAwayPlaceholder ? "text-muted-foreground italic" : ""}`}>{awayName}</span>
-              </div>
-              {(isPlayed || isLive) ? (
-                <span className="font-display text-lg font-bold shrink-0">
-                  {match.reg_away_score}
+                <span
+                  className={`font-medium text-sm truncate ${showAwayPlaceholder ? "text-muted-foreground italic" : ""}`}
+                >
+                  {awayName}
                 </span>
+              </div>
+              {isPlayed || isLive ? (
+                <span className="font-display text-lg font-bold shrink-0">{match.reg_away_score}</span>
               ) : (
                 <span className="text-muted-foreground font-display text-sm shrink-0">VS</span>
               )}
@@ -162,11 +176,7 @@ export default function Schedule() {
   const { data: teams } = useQuery({
     queryKey: ["teams", tournamentId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("teams")
-        .select("*")
-        .eq("tournament_id", tournamentId)
-        .order("name");
+      const { data } = await supabase.from("teams").select("*").eq("tournament_id", tournamentId).order("name");
       return data || [];
     },
   });
@@ -185,9 +195,7 @@ export default function Schedule() {
       let result = data || [];
 
       if (teamFilter !== "all") {
-        result = result.filter(
-          (m: any) => m.home_team_id === teamFilter || m.away_team_id === teamFilter
-        );
+        result = result.filter((m: any) => m.home_team_id === teamFilter || m.away_team_id === teamFilter);
       }
 
       return result;
@@ -210,17 +218,19 @@ export default function Schedule() {
   // Realtime subscription for live match updates
   useEffect(() => {
     const channel = supabase
-      .channel('schedule-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
+      .channel("schedule-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
         queryClient.invalidateQueries({ queryKey: ["all-matches"] });
         queryClient.invalidateQueries({ queryKey: ["playoff-matches-schedule"] });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_events' }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "goal_events" }, () => {
         queryClient.invalidateQueries({ queryKey: ["all-matches"] });
         queryClient.invalidateQueries({ queryKey: ["playoff-matches-schedule"] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [queryClient]);
 
   return (
@@ -244,7 +254,9 @@ export default function Schedule() {
               <SelectContent>
                 <SelectItem value="all">Todos los equipos</SelectItem>
                 {teams?.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -262,7 +274,9 @@ export default function Schedule() {
             {playoffMatches && playoffMatches.length > 0 ? (
               (() => {
                 const byStage: Record<string, any> = {};
-                playoffMatches.forEach((m: any) => { byStage[m.stage] = m; });
+                playoffMatches.forEach((m: any) => {
+                  byStage[m.stage] = m;
+                });
                 const hasWinner = (m: any) => !!m?.winner_team_id;
                 const p1aDone = hasWinner(byStage.P1A);
                 const p1bDone = hasWinner(byStage.P1B);
@@ -310,9 +324,7 @@ export default function Schedule() {
                 });
               })()
             ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No hay partidos de playoffs programados aún.
-              </p>
+              <p className="text-muted-foreground text-center py-8">No hay partidos de playoffs programados aún.</p>
             )}
           </div>
         </TabsContent>
