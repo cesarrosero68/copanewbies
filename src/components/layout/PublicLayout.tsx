@@ -1,10 +1,11 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { Menu, Home as HomeIcon, Calendar, BarChart, Users } from "lucide-react";
 import { useState } from "react";
 import copaLogo from "@/assets/copa-newbies-logo.png";
 import { useTournament } from "@/lib/tournamentContext";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const navLinks = [
   { to: "/", label: "Inicio" },
@@ -17,9 +18,24 @@ const navLinks = [
   { to: "/editions", label: "Ediciones" },
 ];
 
+const bottomBarLinks = [
+  { to: "/", label: "Inicio", icon: HomeIcon },
+  { to: "/schedule", label: "Programación", icon: Calendar },
+  { to: "/standings", label: "Posiciones", icon: BarChart },
+  { to: "/players", label: "Jugadores", icon: Users },
+];
+
+const moreLinks = [
+  { to: "/estadisticas", label: "Estadísticas" },
+  { to: "/playoffs", label: "Playoffs" },
+  { to: "/skills", label: "Skills" },
+  { to: "/editions", label: "Ediciones" },
+  { to: "/admin", label: "Admin" },
+];
+
 export default function PublicLayout() {
   const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const { isReadOnly, currentTournament, viewedTournament, clearEdition } = useTournament();
   const fullName = viewedTournament?.name ?? "Copa Newbies III";
   const nameParts = fullName.trim().split(/\s+/);
@@ -78,41 +94,11 @@ export default function PublicLayout() {
             </Link>
           </nav>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
         </div>
-
-        {/* Mobile nav */}
-        {mobileOpen && (
-          <nav className="md:hidden border-t border-border p-4 flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={withEdition(link.to)}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "px-4 py-3 rounded-md text-sm font-medium transition-colors",
-                  location.pathname === link.to ? "bg-primary text-primary-foreground" : "hover:bg-secondary/80",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              to="/admin"
-              onClick={() => setMobileOpen(false)}
-              className="px-4 py-3 rounded-md text-xs font-medium bg-accent text-accent-foreground"
-            >
-              Admin
-            </Link>
-          </nav>
-        )}
       </header>
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         <Outlet />
       </main>
 
@@ -136,6 +122,66 @@ export default function PublicLayout() {
           </p>
         </div>
       </footer>
+
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+        <div className="grid grid-cols-5">
+          {bottomBarLinks.map((link) => {
+            const Icon = link.icon;
+            const active = location.pathname === link.to;
+            return (
+              <Link
+                key={link.to}
+                to={withEdition(link.to)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 text-xs transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{link.label}</span>
+              </Link>
+            );
+          })}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetTrigger asChild>
+              <button
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 text-xs transition-colors",
+                  moreLinks.some((l) => l.to === location.pathname)
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Menu className="h-5 w-5" />
+                <span className="text-[10px] font-medium">Más</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-xl">
+              <SheetHeader>
+                <SheetTitle>Más opciones</SheetTitle>
+              </SheetHeader>
+              <div className="grid gap-2 mt-4 pb-6">
+                {moreLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={withEdition(link.to)}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "px-4 py-3 rounded-md text-sm font-medium transition-colors",
+                      location.pathname === link.to
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/70",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </nav>
     </div>
   );
 }
