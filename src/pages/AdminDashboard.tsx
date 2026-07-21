@@ -533,6 +533,36 @@ export default function AdminDashboard() {
                   onChange={(e) => setAppearanceLogo(e.target.value)}
                   placeholder="https://..."
                 />
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 1024 * 1024) {
+                        toast({
+                          title: "Imagen muy grande",
+                          description: "Máx. 1 MB. Comprime la imagen e inténtalo de nuevo.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => setAppearanceLogo(String(reader.result));
+                      reader.readAsDataURL(file);
+                    }}
+                    className="cursor-pointer"
+                  />
+                  {appearanceLogo && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setAppearanceLogo("")}>
+                      Quitar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sube una imagen desde tu dispositivo o pega una URL. Este logo se muestra en el hero de la página de inicio y en el encabezado.
+                </p>
                 {appearanceLogo && (
                   <img src={appearanceLogo} alt="preview" className="mt-2 h-16 rounded object-contain" />
                 )}
