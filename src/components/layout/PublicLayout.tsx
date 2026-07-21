@@ -109,7 +109,7 @@ export default function PublicLayout() {
       >
         <div className="container text-center text-sm">
           <p>
-            Copa Newbies Colombia · Creado por{" "}
+            Copa Newbies Colombia · By {" "}
             <a
               href="https://www.instagram.com/hlc_hockeycolombia"
               target="_blank"
