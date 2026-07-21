@@ -118,7 +118,7 @@ export default function PublicLayout() {
             >
               Fundación HLC
             </a>{" "}
-            (César Rosero)
+            - César Rosero
           </p>
         </div>
       </footer>
