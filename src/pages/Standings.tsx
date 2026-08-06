@@ -29,7 +29,7 @@ export default function Standings() {
 
       <Tabs defaultValue="standings">
         <TabsList className="mb-4">
-          <TabsTrigger value="standings">Posiciones</TabsTrigger>
+          <TabsTrigger value="standings">Tabla</TabsTrigger>
           <TabsTrigger value="fairplay">Fair Play</TabsTrigger>
         </TabsList>
 
