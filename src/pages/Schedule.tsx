@@ -235,7 +235,7 @@ export default function Schedule() {
 
   return (
     <div className="container py-8 max-w-3xl mx-auto">
-      <h1 className="font-display text-4xl font-bold uppercase mb-2">Programación y Resultados</h1>
+      <h1 className="font-display text-4xl font-bold uppercase mb-2">Calendario y Resultados</h1>
       <p className="text-muted-foreground mb-6">Todos los partidos del torneo</p>
 
       <Tabs defaultValue="regular" className="w-full">
