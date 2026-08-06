@@ -9,8 +9,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 
 const navLinks = [
   { to: "/", label: "Inicio" },
-  { to: "/schedule", label: "Programación" },
-  { to: "/standings", label: "Posiciones" },
+  { to: "/schedule", label: "Calendario" },
+  { to: "/standings", label: "Tabla" },
   { to: "/players", label: "Jugadores" },
   { to: "/estadisticas", label: "Estadísticas" },
   { to: "/playoffs", label: "Playoffs" },
@@ -20,8 +20,8 @@ const navLinks = [
 
 const bottomBarLinks = [
   { to: "/", label: "Inicio", icon: HomeIcon },
-  { to: "/schedule", label: "Programación", icon: Calendar },
-  { to: "/standings", label: "Posiciones", icon: BarChart },
+  { to: "/schedule", label: "Calendario", icon: Calendar },
+  { to: "/standings", label: "Tabla", icon: BarChart },
   { to: "/players", label: "Jugadores", icon: Users },
 ];
 
