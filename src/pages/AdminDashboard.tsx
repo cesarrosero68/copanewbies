@@ -551,6 +551,28 @@ export default function AdminDashboard() {
           </Dialog>
         </div>
 
+        <div className="flex flex-wrap gap-3 mb-6">
+          <Button variant="outline" onClick={() => setImportCalOpen(true)}>
+            <CalendarPlus className="w-4 h-4 mr-1" /> Importar Calendario
+          </Button>
+          <Link to="/admin/plantillas">
+            <Button variant="outline">
+              <Users className="w-4 h-4 mr-1" /> Plantillas
+            </Button>
+          </Link>
+          <Button variant="outline" onClick={exportData} disabled={exporting}>
+            <Download className="w-4 h-4 mr-1" /> {exporting ? "Exportando..." : "Exportar"}
+          </Button>
+          <Link to="/admin/apariencia">
+            <Button variant="outline">
+              <Palette className="w-4 h-4 mr-1" /> Apariencia
+            </Button>
+          </Link>
+          <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
+            <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
+          </Button>
+        </div>
+
         <div className="space-y-3">
           {sortedMatches.map((match: any) => (
             <Card key={match.id} className={match.status === "live" ? "border-destructive" : ""}>
@@ -594,28 +616,6 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="flex flex-wrap gap-3 mb-6">
-          <Button variant="outline" onClick={() => setImportCalOpen(true)}>
-            <CalendarPlus className="w-4 h-4 mr-1" /> Importar Calendario
-          </Button>
-          <Link to="/admin/plantillas">
-            <Button variant="outline">
-              <Users className="w-4 h-4 mr-1" /> Plantillas
-            </Button>
-          </Link>
-          <Button variant="outline" onClick={exportData} disabled={exporting}>
-            <Download className="w-4 h-4 mr-1" /> {exporting ? "Exportando..." : "Exportar"}
-          </Button>
-          <Link to="/admin/apariencia">
-            <Button variant="outline">
-              <Palette className="w-4 h-4 mr-1" /> Apariencia
-            </Button>
-          </Link>
-          <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
-            <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
-          </Button>
         </div>
 
         <ImportCalendarDialog
