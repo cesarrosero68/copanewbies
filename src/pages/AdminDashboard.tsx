@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Users, Palette, Trash2 } from "lucide-react";
+import { ChevronLeft, Users, Palette, Trash2, CalendarPlus, Download } from "lucide-react";
+import * as XLSX from "xlsx";
+import ImportCalendarDialog from "@/components/admin/ImportCalendarDialog";
 import type { Session } from "@supabase/supabase-js";
 import { useTournament } from "@/lib/tournamentContext";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -120,6 +122,8 @@ export default function AdminDashboard() {
   const [fontFamily, setFontFamily] = useState<string>("inter");
   const [fontSize, setFontSize] = useState<string>("16");
   const [savingAppearance, setSavingAppearance] = useState(false);
+  const [importCalOpen, setImportCalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -217,6 +221,137 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/admin/login");
+  };
+
+  const { data: adminTeams } = useQuery({
+    queryKey: ["admin-teams", activeTournamentId],
+    queryFn: async () => {
+      const { data } = await supabase.from("teams").select("*").eq("tournament_id", activeTournamentId).order("name");
+      return data || [];
+    },
+    enabled: !!session && isAdmin === true && !!activeTournamentId,
+  });
+
+  const exportData = async () => {
+    if (!activeTournamentId) return;
+    setExporting(true);
+    try {
+      const { data: matchRows, error: mErr } = await supabase
+        .from("matches")
+        .select("*, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)")
+        .eq("tournament_id", activeTournamentId)
+        .order("match_number");
+      if (mErr) throw mErr;
+      const matchIds = (matchRows || []).map((m: any) => m.id);
+
+      const [goalsRes, penaltiesRes, playersRes, staffRes] = await Promise.all([
+        matchIds.length
+          ? supabase
+              .from("goal_events")
+              .select("*, team:teams(name), scorer:players!goal_events_scorer_player_id_fkey(name, jersey_number), assist:players!goal_events_assist_player_id_fkey(name)")
+              .in("match_id", matchIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        matchIds.length
+          ? supabase
+              .from("penalty_events")
+              .select("*, team:teams(name), player:players(name, jersey_number)")
+              .in("match_id", matchIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        supabase
+          .from("players")
+          .select("*, team:teams!inner(name, tournament_id)")
+          .eq("team.tournament_id", activeTournamentId)
+          .order("jersey_number"),
+        supabase.from("team_staff").select("*, team:teams!inner(name, tournament_id)").eq("team.tournament_id", activeTournamentId),
+      ]);
+
+      const fmt = (iso: string | null) => {
+        if (!iso) return { fecha: "", hora: "" };
+        const d = new Date(iso);
+        const parts = new Intl.DateTimeFormat("es-CO", {
+          timeZone: "America/Bogota",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).formatToParts(d);
+        const g = (t: string) => parts.find((p) => p.type === t)?.value || "";
+        return { fecha: `${g("year")}-${g("month")}-${g("day")}`, hora: `${g("hour")}:${g("minute")}` };
+      };
+
+      const matchesSheet = (matchRows || []).map((m: any) => {
+        const { fecha, hora } = fmt(m.start_time);
+        return {
+          "match number": m.match_number,
+          jornada: (m.notes || "").replace(/^Jornada\s*/i, "") || "",
+          fecha,
+          hora,
+          local: m.home_team?.name || "",
+          "goles local": m.reg_home_score ?? "",
+          "goles visitante": m.reg_away_score ?? "",
+          visitante: m.away_team?.name || "",
+          estado: m.status,
+          fase: m.stage,
+        };
+      });
+
+      const matchByIdNum: Record<string, any> = {};
+      (matchRows || []).forEach((m: any) => (matchByIdNum[m.id] = m.match_number));
+
+      const goalsSheet = (goalsRes.data || []).map((g: any) => ({
+        partido: matchByIdNum[g.match_id] ?? "",
+        equipo: g.team?.name || "",
+        periodo: g.period,
+        tiempo: g.time_mmss,
+        goleador: g.scorer?.name || "",
+        asistencia: g.assist?.name || "",
+        autogol: g.is_own_goal ? "SI" : "NO",
+      }));
+
+      const penaltiesSheet = (penaltiesRes.data || []).map((p: any) => ({
+        partido: matchByIdNum[p.match_id] ?? "",
+        equipo: p.team?.name || "",
+        jugador: p.player?.name || "",
+        periodo: p.period,
+        tiempo: p.time_mmss,
+        duracion: p.duration_mmss,
+        sancion: p.penalty_type,
+      }));
+
+      const rostersSheet = [
+        ...(playersRes.data || []).map((p: any) => ({
+          equipo: p.team?.name || "",
+          nombre: p.first_name || p.name || "",
+          apellido: p.last_name || "",
+          dorsal: p.jersey_number,
+          posicion: p.position || "",
+          capitan: p.is_captain ? "SI" : "",
+        })),
+        ...(staffRes.data || []).map((s: any) => ({
+          equipo: s.team?.name || "",
+          nombre: s.first_name,
+          apellido: s.last_name,
+          dorsal: "",
+          posicion: s.role || "",
+          capitan: "",
+        })),
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matchesSheet), "Partidos");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(goalsSheet), "Goles");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(penaltiesSheet), "Sanciones");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rostersSheet), "Plantillas");
+      const safeName = (activeTournament?.name || "torneo").replace(/[^\w-]+/g, "_");
+      XLSX.writeFile(wb, `${safeName}.xlsx`);
+      toast({ title: "Exportación lista" });
+    } catch (e: any) {
+      toast({ title: "Error al exportar", description: e.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const resetResults = async () => {
@@ -461,12 +596,18 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 mb-6">
+          <Button variant="outline" onClick={() => setImportCalOpen(true)}>
+            <CalendarPlus className="w-4 h-4 mr-1" /> Importar Calendario
+          </Button>
           <Link to="/admin/plantillas">
             <Button variant="outline">
               <Users className="w-4 h-4 mr-1" /> Plantillas
             </Button>
           </Link>
+          <Button variant="outline" onClick={exportData} disabled={exporting}>
+            <Download className="w-4 h-4 mr-1" /> {exporting ? "Exportando..." : "Exportar"}
+          </Button>
           <Link to="/admin/apariencia">
             <Button variant="outline">
               <Palette className="w-4 h-4 mr-1" /> Apariencia
@@ -476,6 +617,13 @@ export default function AdminDashboard() {
             <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
           </Button>
         </div>
+
+        <ImportCalendarDialog
+          open={importCalOpen}
+          onOpenChange={setImportCalOpen}
+          tournamentId={activeTournamentId}
+          teams={adminTeams || []}
+        />
 
         <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
