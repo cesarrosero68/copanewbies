@@ -1,163 +1,144 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { IS_PRESEASON } from "@/lib/tournament";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
+import { ChevronDown, ChevronRight, Star } from "lucide-react";
+
+const ROLE_ORDER = ["ENTRENADOR", "ASISTENTE", "DELEGADO"];
+const ROLE_LABELS: Record<string, string> = {
+  ENTRENADOR: "Entrenador",
+  ASISTENTE: "Asistente",
+  DELEGADO: "Delegado",
+};
+
+const fullName = (p: any) =>
+  p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.name || p.first_name || p.last_name || "—";
+
+function TeamCard({ team }: { team: any }) {
+  const [open, setOpen] = useState(false);
+
+  const { data: players } = useQuery({
+    queryKey: ["team-roster", team.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("players")
+        .select("id, first_name, last_name, name, jersey_number, position, is_captain")
+        .eq("team_id", team.id)
+        .order("jersey_number");
+      return data || [];
+    },
+  });
+
+  const { data: staff } = useQuery({
+    queryKey: ["team-staff", team.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("team_staff")
+        .select("id, first_name, last_name, role")
+        .eq("team_id", team.id);
+      return data || [];
+    },
+  });
+
+  const sortedStaff = [...(staff || [])].sort(
+    (a: any, b: any) =>
+      ROLE_ORDER.indexOf((a.role || "").toUpperCase()) - ROLE_ORDER.indexOf((b.role || "").toUpperCase()),
+  );
+
+  const empty = (players?.length ?? 0) === 0 && (staff?.length ?? 0) === 0;
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
+        >
+          {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+          <TeamLogo team={team} size={40} />
+          <span className="font-display font-bold text-lg flex-1 truncate">{team.name}</span>
+          <Badge variant="outline">{players?.length ?? 0} jugadores</Badge>
+        </button>
+
+        {open && (
+          <div className="border-t p-4 space-y-6">
+            {empty ? (
+              <p className="text-sm text-muted-foreground italic">Sin plantilla registrada aún</p>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-2">Jugadores</h3>
+                  {players && players.length > 0 ? (
+                    <div className="space-y-1">
+                      {players.map((p: any) => (
+                        <div key={p.id} className="flex items-center gap-3 py-1.5 border-b last:border-0">
+                          <span className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-mono font-bold shrink-0">
+                            {p.jersey_number}
+                          </span>
+                          <span className="font-medium flex-1 truncate">{fullName(p)}</span>
+                          {p.is_captain && <Star className="w-4 h-4 text-primary shrink-0" fill="currentColor" />}
+                          <span className="text-xs text-muted-foreground">{p.position || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin jugadores registrados</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-2">Cuerpo Técnico</h3>
+                  {sortedStaff.length > 0 ? (
+                    <div className="space-y-1">
+                      {sortedStaff.map((s: any) => (
+                        <div key={s.id} className="flex items-center gap-3 py-1.5 border-b last:border-0">
+                          <span className="font-medium flex-1 truncate">
+                            {s.first_name} {s.last_name}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {ROLE_LABELS[(s.role || "").toUpperCase()] || s.role || "—"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin cuerpo técnico registrado</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Players() {
-  const [teamFilter, setTeamFilter] = useState("all");
   const { viewedTournamentId: tournamentId } = useTournament();
 
   const { data: teams } = useQuery({
     queryKey: ["teams", tournamentId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("teams")
-        .select("*")
-        .eq("tournament_id", tournamentId)
-        .order("name");
+      const { data } = await supabase.from("teams").select("*").eq("tournament_id", tournamentId).order("name");
       return data || [];
     },
   });
-
-  const { data: players } = useQuery({
-    queryKey: ["all-players", tournamentId, teamFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("players")
-        .select("*, team:teams(*)")
-        .order("jersey_number");
-
-      if (teamFilter !== "all") {
-        query = query.eq("team_id", teamFilter);
-      } else {
-        const teamIds = teams?.map((t: any) => t.id) || [];
-        if (teamIds.length > 0) query = query.in("team_id", teamIds);
-      }
-
-      const { data } = await query;
-      return data || [];
-    },
-    enabled: !!teams && teams.length > 0,
-  });
-
-  const { data: playerStats } = useQuery({
-    queryKey: ["all-player-stats", tournamentId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("player_stats_aggregate")
-        .select("*")
-        .eq("tournament_id", tournamentId);
-      return data || [];
-    },
-    enabled: !IS_PRESEASON,
-  });
-
-  const { data: standings } = useQuery({
-    queryKey: ["standings-for-pj", tournamentId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("standings_aggregate")
-        .select("team_id, played")
-        .eq("tournament_id", tournamentId);
-      return data || [];
-    },
-    enabled: !IS_PRESEASON,
-  });
-
-  const getStats = (playerId: string) => {
-    if (IS_PRESEASON) return { goals: 0, assists: 0, points: 0 };
-    const s = playerStats?.find((ps: any) => ps.player_id === playerId);
-    return { goals: s?.goals || 0, assists: s?.assists || 0, points: s?.points || 0 };
-  };
-
-  const getTeamPJ = (teamId: string) => {
-    if (IS_PRESEASON) return 0;
-    const s = standings?.find((st: any) => st.team_id === teamId);
-    return s?.played || 0;
-  };
-
-  const selectedTeam = teams?.find((t: any) => t.id === teamFilter);
 
   return (
     <div className="container py-8">
-      <h1 className="font-display text-4xl font-bold uppercase mb-2">Jugadores</h1>
-      <p className="text-muted-foreground mb-6">Roster y estadísticas por equipo</p>
+      <h1 className="font-display text-4xl font-bold uppercase mb-2">Equipos</h1>
+      <p className="text-muted-foreground mb-6">Plantillas y cuerpo técnico por equipo</p>
 
-      <div className="flex items-center gap-3 mb-6">
-        {selectedTeam && <TeamLogo team={selectedTeam} size={40} />}
-        <Select value={teamFilter} onValueChange={setTeamFilter}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Filtrar por equipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los equipos</SelectItem>
-            {teams?.map((t: any) => (
-              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-3">
+        {teams?.map((t: any) => <TeamCard key={t.id} team={t} />)}
+        {teams && teams.length === 0 && (
+          <p className="text-center text-muted-foreground py-10">No hay equipos registrados</p>
+        )}
       </div>
-
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-secondary text-secondary-foreground">
-                <th className="p-3 text-left">Nombre</th>
-                <th className="p-3 text-center">#</th>
-                <th className="p-3 text-left">Posición</th>
-                {teamFilter === "all" && <th className="p-3 text-left">Equipo</th>}
-                <th className="p-3 text-center">PJ (proxy)</th>
-                <th className="p-3 text-center">Goles</th>
-                <th className="p-3 text-center">Asist.</th>
-                <th className="p-3 text-center font-bold">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players?.map((p: any) => {
-                const stats = getStats(p.id);
-                const pj = getTeamPJ(p.team_id);
-                return (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-medium">{p.name}</td>
-                    <td className="p-3 text-center font-bold">{p.jersey_number}</td>
-                    <td className="p-3 text-muted-foreground">{p.position || "-"}</td>
-                    {teamFilter === "all" && (
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <TeamLogo team={p.team} size={32} />
-                          <span className="text-xs">{p.team?.name}</span>
-                        </div>
-                      </td>
-                    )}
-                    <td className="p-3 text-center">{pj}</td>
-                    <td className="p-3 text-center">{stats.goals}</td>
-                    <td className="p-3 text-center">{stats.assists}</td>
-                    <td className="p-3 text-center font-display font-bold">{stats.points}</td>
-                  </tr>
-                );
-              })}
-              {(!players || players.length === 0) && (
-                <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                    No hay jugadores registrados
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
-
-      {IS_PRESEASON && (
-        <p className="mt-4 text-xs text-muted-foreground italic">
-          * Estadísticas en cero — el torneo aún no ha comenzado. PJ (proxy) = partidos jugados del equipo.
-        </p>
-      )}
     </div>
   );
 }
