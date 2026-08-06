@@ -11,7 +11,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { toast } from "@/hooks/use-toast";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
-import { ChevronLeft, Pencil, Trash2, Upload, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, Pencil, Trash2, Upload, Plus, FileUp } from "lucide-react";
+import { parseCsv, normalizeName } from "@/lib/csv";
 import * as XLSX from "xlsx";
 import type { Session } from "@supabase/supabase-js";
 
@@ -32,6 +34,12 @@ export default function AdminPlantillas() {
   const [editing, setEditing] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [staffFirst, setStaffFirst] = useState("");
+  const [staffLast, setStaffLast] = useState("");
+  const [staffRole, setStaffRole] = useState("ENTRENADOR");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -75,6 +83,111 @@ export default function AdminPlantillas() {
     },
     enabled: !!selectedTeamId,
   });
+
+  const { data: staff, refetch: refetchStaff } = useQuery({
+    queryKey: ["plantillas-staff", selectedTeamId],
+    queryFn: async () => {
+      const { data } = await supabase.from("team_staff").select("*").eq("team_id", selectedTeamId!);
+      return data || [];
+    },
+    enabled: !!selectedTeamId,
+  });
+
+  const addStaff = async () => {
+    if (!staffFirst.trim() || !staffLast.trim() || !selectedTeamId) {
+      toast({ title: "Faltan datos", description: "Nombre y apellido son obligatorios", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("team_staff").insert({
+      team_id: selectedTeamId,
+      first_name: staffFirst.trim(),
+      last_name: staffLast.trim(),
+      role: staffRole,
+    });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Miembro agregado" });
+    setStaffFirst(""); setStaffLast("");
+    refetchStaff();
+  };
+
+  const deleteStaff = async (s: any) => {
+    if (!confirm(`¿Eliminar a ${s.first_name} ${s.last_name} del cuerpo técnico?`)) return;
+    const { error } = await supabase.from("team_staff").delete().eq("id", s.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Miembro eliminado" });
+    refetchStaff();
+  };
+
+  const STAFF_ROLES = ["ENTRENADOR", "ASISTENTE", "DELEGADO"];
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setCsvErrors([]);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setCsvBusy(true);
+      try {
+        const rows = parseCsv(String(reader.result));
+        if (rows.length === 0) { toast({ title: "CSV vacío", variant: "destructive" }); return; }
+        const errors: string[] = [];
+        const playerRows: any[] = [];
+        const staffRows: any[] = [];
+
+        rows.forEach((r, i) => {
+          const line = i + 2;
+          const teamName = r["equipo"] || "";
+          const team = (teams || []).find((t: any) => normalizeName(t.name) === normalizeName(teamName));
+          if (!team) {
+            errors.push(`Fila ${line}: equipo "${teamName}" no existe en esta edición`);
+            return;
+          }
+          const nombre = r["nombre"] || "";
+          const apellido = r["apellido"] || "";
+          if (!nombre) { errors.push(`Fila ${line}: falta "nombre"`); return; }
+          const posicion = (r["posicion"] || "").trim();
+          const posUpper = normalizeName(posicion).toUpperCase();
+
+          if (STAFF_ROLES.includes(posUpper)) {
+            staffRows.push({ team_id: team.id, first_name: nombre, last_name: apellido, role: posUpper });
+          } else {
+            const dorsal = parseInt(r["dorsal"] || "", 10);
+            if (!Number.isFinite(dorsal)) { errors.push(`Fila ${line}: dorsal inválido "${r["dorsal"] || ""}"`); return; }
+            playerRows.push({
+              team_id: team.id,
+              first_name: nombre,
+              last_name: apellido,
+              name: `${nombre} ${apellido}`.trim(),
+              jersey_number: dorsal,
+              position: posicion || "Jugador",
+            });
+          }
+        });
+
+        if (playerRows.length > 0) {
+          const { error } = await supabase.from("players").insert(playerRows);
+          if (error) errors.push(`Jugadores: ${error.message}`);
+        }
+        if (staffRows.length > 0) {
+          const { error } = await supabase.from("team_staff").insert(staffRows);
+          if (error) errors.push(`Cuerpo técnico: ${error.message}`);
+        }
+
+        setCsvErrors(errors);
+        toast({
+          title: `${playerRows.length} jugadores y ${staffRows.length} miembros del cuerpo técnico importados`,
+          description: errors.length ? `${errors.length} filas con errores` : undefined,
+          variant: errors.length ? "destructive" : undefined,
+        });
+        refetch();
+        refetchStaff();
+      } finally {
+        setCsvBusy(false);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const handleAdd = async () => {
     if (!name.trim() || !jersey.trim() || !selectedTeamId) {
@@ -174,6 +287,9 @@ export default function AdminPlantillas() {
               <TeamLogo team={selectedTeam} size={40} />
               <h2 className="font-display text-2xl font-bold">{selectedTeam.name}</h2>
               <div className="ml-auto">
+                <Button variant="outline" size="sm" className="mr-2" onClick={() => setCsvOpen(true)}>
+                  <FileUp className="w-4 h-4 mr-1" /> Importar CSV
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                   <Upload className="w-4 h-4 mr-1" /> Importar Excel
                 </Button>
@@ -219,8 +335,63 @@ export default function AdminPlantillas() {
             ))}
             {players && players.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Sin jugadores</p>}
           </div>
+
+          <div className="space-y-3">
+            <h3 className="font-display text-lg font-bold uppercase">Cuerpo Técnico</h3>
+            <Card>
+              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div><Label>Nombre *</Label><Input value={staffFirst} onChange={(e) => setStaffFirst(e.target.value)} /></div>
+                <div><Label>Apellido *</Label><Input value={staffLast} onChange={(e) => setStaffLast(e.target.value)} /></div>
+                <div>
+                  <Label>Rol</Label>
+                  <Select value={staffRole} onValueChange={setStaffRole}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ENTRENADOR">Entrenador</SelectItem>
+                      <SelectItem value="ASISTENTE">Asistente</SelectItem>
+                      <SelectItem value="DELEGADO">Delegado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={addStaff}><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-2">
+              {(staff || []).map((s: any) => (
+                <Card key={s.id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0 font-medium truncate">{s.first_name} {s.last_name}</div>
+                    <Badge variant="secondary" className="text-xs">{s.role || "—"}</Badge>
+                    <Button variant="ghost" size="icon" onClick={() => deleteStaff(s)}><Trash2 className="w-4 h-4" /></Button>
+                  </CardContent>
+                </Card>
+              ))}
+              {staff && staff.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sin cuerpo técnico</p>}
+            </div>
+          </div>
         </section>
       </div>
+
+      {/* CSV import dialog (roster + staff) */}
+      <Dialog open={csvOpen} onOpenChange={(o) => { setCsvOpen(o); if (!o) setCsvErrors([]); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Importar CSV (jugadores y cuerpo técnico)</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Columnas: <code>nombre, apellido, dorsal, equipo, posicion</code>. Si la posición es
+            {" "}<code>entrenador</code>, <code>asistente</code> o <code>delegado</code>, la fila se registra en el
+            cuerpo técnico. Los equipos se buscan solo dentro de la edición activa.
+          </p>
+          <input type="file" accept=".csv,text/csv" onChange={handleCsvImport} disabled={csvBusy} className="text-sm" />
+          {csvErrors.length > 0 && (
+            <div className="max-h-56 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/5 p-3 space-y-1">
+              {csvErrors.map((err, i) => (
+                <p key={i} className="text-xs text-destructive">{err}</p>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>

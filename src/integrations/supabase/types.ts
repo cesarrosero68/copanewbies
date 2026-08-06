@@ -323,26 +323,41 @@ export type Database = {
       }
       players: {
         Row: {
+          birth_date: string | null
           created_at: string
+          first_name: string | null
           id: string
+          is_captain: boolean | null
           jersey_number: number
+          last_name: string | null
           name: string
+          phone: string | null
           position: string | null
           team_id: string
         }
         Insert: {
+          birth_date?: string | null
           created_at?: string
+          first_name?: string | null
           id?: string
+          is_captain?: boolean | null
           jersey_number: number
+          last_name?: string | null
           name: string
+          phone?: string | null
           position?: string | null
           team_id: string
         }
         Update: {
+          birth_date?: string | null
           created_at?: string
+          first_name?: string | null
           id?: string
+          is_captain?: boolean | null
           jersey_number?: number
+          last_name?: string | null
           name?: string
+          phone?: string | null
           position?: string | null
           team_id?: string
         }
@@ -626,6 +641,41 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_staff: {
+        Row: {
+          created_at: string | null
+          first_name: string
+          id: string
+          last_name: string
+          role: string | null
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          role?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          role?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_staff_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
