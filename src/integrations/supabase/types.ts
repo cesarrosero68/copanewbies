@@ -92,13 +92,18 @@ export type Database = {
       matches: {
         Row: {
           away_team_id: string
+          clock_enabled: boolean | null
+          clock_offset_ms: number | null
+          clock_started_at: string | null
           created_at: string
+          current_period: number | null
           home_team_id: string
           id: string
           match_number: number | null
           notes: string | null
           ot_played: boolean | null
           ot_winner_team_id: string | null
+          period_minutes: number | null
           reg_away_score: number | null
           reg_home_score: number | null
           so_played: boolean | null
@@ -113,13 +118,18 @@ export type Database = {
         }
         Insert: {
           away_team_id: string
+          clock_enabled?: boolean | null
+          clock_offset_ms?: number | null
+          clock_started_at?: string | null
           created_at?: string
+          current_period?: number | null
           home_team_id: string
           id?: string
           match_number?: number | null
           notes?: string | null
           ot_played?: boolean | null
           ot_winner_team_id?: string | null
+          period_minutes?: number | null
           reg_away_score?: number | null
           reg_home_score?: number | null
           so_played?: boolean | null
@@ -134,13 +144,18 @@ export type Database = {
         }
         Update: {
           away_team_id?: string
+          clock_enabled?: boolean | null
+          clock_offset_ms?: number | null
+          clock_started_at?: string | null
           created_at?: string
+          current_period?: number | null
           home_team_id?: string
           id?: string
           match_number?: number | null
           notes?: string | null
           ot_played?: boolean | null
           ot_winner_team_id?: string | null
+          period_minutes?: number | null
           reg_away_score?: number | null
           reg_home_score?: number | null
           so_played?: boolean | null
