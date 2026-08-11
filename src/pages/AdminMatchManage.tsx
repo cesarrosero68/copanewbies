@@ -153,6 +153,115 @@ export default function AdminMatchManage() {
   );
 }
 
+function MatchClockPanel({ match, updateMatch }: any) {
+  const running = isClockRunning(match);
+  const [now, setNow] = useState(() => Date.now());
+  const [manualMinutes, setManualMinutes] = useState(String(match.period_minutes ?? DEFAULT_PERIOD_MINUTES));
+
+  useEffect(() => {
+    setManualMinutes(String(match.period_minutes ?? DEFAULT_PERIOD_MINUTES));
+  }, [match.period_minutes]);
+
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [running, match.clock_started_at]);
+
+  // Auto-pause when the period runs out
+  useEffect(() => {
+    if (!running) return;
+    if (remainingMs(match, now) > 0) return;
+    updateMatch.mutate({ clock_started_at: null, clock_offset_ms: periodMs(match) });
+  }, [running, now]);
+
+  const remaining = formatClock(remainingMs(match, running ? now : Date.now()));
+  const offset = Number(match.clock_offset_ms ?? 0);
+  const enabled = match.clock_enabled !== false;
+
+  const setMinutes = (mins: number) => {
+    if (!Number.isFinite(mins) || mins <= 0) return;
+    updateMatch.mutate({ period_minutes: Math.round(mins) });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="font-display text-lg uppercase">Cronómetro</CardTitle>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={enabled}
+              onCheckedChange={(v) => updateMatch.mutate({ clock_enabled: v })}
+            />
+            Cronómetro habilitado
+          </label>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0 space-y-4">
+        <div className="text-center">
+          <div className="font-display text-6xl font-bold tabular-nums">{remaining}</div>
+          <p className="text-sm text-muted-foreground mt-1">{periodLabel(match.current_period ?? 1)}</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2 justify-center">
+          {!running ? (
+            <Button size="sm" onClick={() => updateMatch.mutate({ clock_started_at: new Date().toISOString() })} disabled={!enabled}>
+              {offset > 0 ? "Reanudar" : "Iniciar"}
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" onClick={() => updateMatch.mutate({ clock_started_at: null, clock_offset_ms: elapsedMs(match) })}>
+              Pausar
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              updateMatch.mutate({
+                current_period: Math.min(3, (match.current_period ?? 1) + 1),
+                clock_started_at: null,
+                clock_offset_ms: 0,
+              })
+            }
+          >
+            Siguiente período
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => updateMatch.mutate({ clock_started_at: null, clock_offset_ms: 0 })}>
+            Reiniciar
+          </Button>
+        </div>
+
+        <div className="border-t pt-3">
+          <Label className="text-xs">Duración del período (minutos)</Label>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {PERIOD_PRESETS.map((p) => (
+              <Button
+                key={p}
+                size="sm"
+                variant={(match.period_minutes ?? DEFAULT_PERIOD_MINUTES) === p ? "default" : "outline"}
+                onClick={() => setMinutes(p)}
+              >
+                {p}′
+              </Button>
+            ))}
+            <Input
+              type="number"
+              min={1}
+              className="w-24"
+              value={manualMinutes}
+              onChange={(e) => setManualMinutes(e.target.value)}
+            />
+            <Button size="sm" variant="secondary" onClick={() => setMinutes(parseInt(manualMinutes))}>
+              Aplicar
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
   const [homeScore, setHomeScore] = useState(match.reg_home_score?.toString() || "0");
   const [awayScore, setAwayScore] = useState(match.reg_away_score?.toString() || "0");
@@ -414,15 +523,33 @@ function MatchActions({ match, updateMatch, queryClient, navigate }: any) {
   );
 }
 
-function GoalEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matchId: string; homeTeamId: string; awayTeamId: string; disabled?: boolean }) {
+function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }: { match: any; matchId: string; homeTeamId: string; awayTeamId: string; disabled?: boolean }) {
   const queryClient = useQueryClient();
   const [teamId, setTeamId] = useState(homeTeamId);
   const [period, setPeriod] = useState("1");
   const [time, setTime] = useState("");
+  const [timeTouched, setTimeTouched] = useState(false);
   const [scorerId, setScorerId] = useState("");
   const [assistId, setAssistId] = useState("");
   const [isOwnGoal, setIsOwnGoal] = useState(false);
   const [ownGoalPlayerId, setOwnGoalPlayerId] = useState("");
+  const clockRunning = isClockRunning(match);
+  const clockEnabled = match?.clock_enabled !== false;
+
+  // Auto-fill time from the live clock while untouched
+  useEffect(() => {
+    if (!clockRunning || timeTouched) return;
+    setTime(formatClock(elapsedMs(match)));
+    const t = setInterval(() => setTime(formatClock(elapsedMs(match))), 1000);
+    return () => clearInterval(t);
+  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+
+  // Keep period synced with the live period
+  useEffect(() => {
+    if (!clockEnabled) return;
+    const p = match?.current_period ?? 1;
+    setPeriod(p === 1 ? "1" : p === 2 ? "2" : "OT");
+  }, [clockEnabled, match?.current_period]);
 
   const { data: goals } = useQuery({
     queryKey: ["admin-goals", matchId],
@@ -466,6 +593,7 @@ function GoalEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matc
 
   const addGoal = useMutation({
     mutationFn: async () => {
+      if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
       const insert: any = {
         match_id: matchId,
         team_id: teamId,
@@ -488,6 +616,7 @@ function GoalEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matc
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
       setTime("");
+      setTimeTouched(false);
       setScorerId("");
       setAssistId("");
       setIsOwnGoal(false);
@@ -567,7 +696,17 @@ function GoalEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matc
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <Input value={time} onChange={(e) => setTime(e.target.value)} placeholder="05:30" />
+              <Input
+                value={time}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
+              {clockRunning && !timeTouched && (
+                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
+              )}
             </div>
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -626,12 +765,13 @@ function GoalEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matc
   );
 }
 
-function PenaltyEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { matchId: string; homeTeamId: string; awayTeamId: string; disabled?: boolean }) {
+function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }: { match: any; matchId: string; homeTeamId: string; awayTeamId: string; disabled?: boolean }) {
   const queryClient = useQueryClient();
   const [teamId, setTeamId] = useState(homeTeamId);
   const [period, setPeriod] = useState("1");
   const [gameMinutes, setGameMinutes] = useState("");
   const [gameSeconds, setGameSeconds] = useState("00");
+  const [timeTouched, setTimeTouched] = useState(false);
   const [timePreset, setTimePreset] = useState("01:30");
   const [penaltyMins, setPenaltyMins] = useState("1");
   const [penaltySecs, setPenaltySecs] = useState("30");
@@ -676,12 +816,33 @@ function PenaltyEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { m
   });
 
   const currentPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
+  const clockRunning = isClockRunning(match);
+  const clockEnabled = match?.clock_enabled !== false;
+
+  useEffect(() => {
+    if (!clockRunning || timeTouched) return;
+    const sync = () => {
+      const [m, s] = formatClock(elapsedMs(match)).split(":");
+      setGameMinutes(String(parseInt(m)));
+      setGameSeconds(s);
+    };
+    sync();
+    const t = setInterval(sync, 1000);
+    return () => clearInterval(t);
+  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+
+  useEffect(() => {
+    if (!clockEnabled) return;
+    const p = match?.current_period ?? 1;
+    setPeriod(p === 1 ? "1" : p === 2 ? "2" : "OT");
+  }, [clockEnabled, match?.current_period]);
 
   const addPenalty = useMutation({
     mutationFn: async () => {
       const gMins = parseInt(gameMinutes) || 0;
       const gSecs = parseInt(gameSeconds) || 0;
       const timeMmss = `${String(gMins).padStart(2, "0")}:${String(gSecs).padStart(2, "0")}`;
+      if (!isValidMmSs(timeMmss)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
       const pMins = parseInt(penaltyMins) || 0;
       const pSecs = parseInt(penaltySecs) || 0;
       const durationMmss = `${String(pMins).padStart(2, "0")}:${String(pSecs).padStart(2, "0")}`;
@@ -700,6 +861,7 @@ function PenaltyEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { m
       queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
       setGameMinutes("");
       setGameSeconds("00");
+      setTimeTouched(false);
       setTimePreset("01:30");
       setPenaltyMins("1");
       setPenaltySecs("30");
@@ -775,11 +937,11 @@ function PenaltyEventsSection({ matchId, homeTeamId, awayTeamId, disabled }: { m
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Minuto del partido</Label>
-                <Input type="number" min={0} max={60} value={gameMinutes} onChange={(e) => setGameMinutes(e.target.value)} placeholder="00" />
+                <Input type="number" min={0} max={60} value={gameMinutes} onChange={(e) => { setTimeTouched(true); setGameMinutes(e.target.value); }} placeholder="00" />
               </div>
               <div>
                 <Label className="text-xs">Segundos</Label>
-                <Input type="number" min={0} max={59} value={gameSeconds} onChange={(e) => setGameSeconds(e.target.value)} placeholder="00" />
+                <Input type="number" min={0} max={59} value={gameSeconds} onChange={(e) => { setTimeTouched(true); setGameSeconds(e.target.value); }} placeholder="00" />
               </div>
             </div>
 
