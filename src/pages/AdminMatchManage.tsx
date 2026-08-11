@@ -11,7 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import TeamLogo from "@/components/TeamLogo";
+import {
+  DEFAULT_PERIOD_MINUTES,
+  PERIOD_PRESETS,
+  elapsedMs,
+  formatClock,
+  isClockRunning,
+  isValidMmSs,
+  periodLabel,
+  periodMs,
+  remainingMs,
+} from "@/lib/matchClock";
 
 const PENALTY_TYPES = [
   { code: "BC", desc: "BODY CHECKING" },
@@ -115,6 +127,9 @@ export default function AdminMatchManage() {
         {/* Scoreboard */}
         <ScoreBoard match={match} updateMatch={updateMatch} isLive={isLive} isPlayed={isPlayed} isPlayoff={isPlayoff} />
 
+        {/* Live clock */}
+        {(isLive || match.status === "scheduled") && <MatchClockPanel match={match} updateMatch={updateMatch} />}
+
         {/* Goals & Penalties tabs */}
         {(isLive || isPlayed) && (
           <Tabs defaultValue="goals">
@@ -123,10 +138,10 @@ export default function AdminMatchManage() {
               <TabsTrigger value="penalties" className="flex-1">🏒 Sanciones</TabsTrigger>
             </TabsList>
             <TabsContent value="goals">
-              <GoalEventsSection matchId={match.id} homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} disabled={match.status === "locked"} />
+              <GoalEventsSection match={match} matchId={match.id} homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} disabled={match.status === "locked"} />
             </TabsContent>
             <TabsContent value="penalties">
-              <PenaltyEventsSection matchId={match.id} homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} disabled={match.status === "locked"} />
+              <PenaltyEventsSection match={match} matchId={match.id} homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} disabled={match.status === "locked"} />
             </TabsContent>
           </Tabs>
         )}
