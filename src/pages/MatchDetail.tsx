@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toBogotaDate } from "@/lib/dateUtils";
 import TeamLogo from "@/components/TeamLogo";
+import { useMatchClock, periodLabel } from "@/lib/matchClock";
 import { useTournament } from "@/lib/tournamentContext";
 
 const teamColorMap: Record<string, string> = {
@@ -36,6 +37,8 @@ export default function MatchDetail() {
     },
     enabled: !!id && !!tournamentId,
   });
+
+  const clock = useMatchClock(match as any);
 
   const { data: goalEvents } = useQuery({
     queryKey: ["match-goals", id],
@@ -109,6 +112,12 @@ export default function MatchDetail() {
               <p className="text-sm text-muted-foreground mt-1">
                 {format(toBogotaDate(match.start_time), "EEEE d MMMM yyyy • HH:mm", { locale: es })}
               </p>
+            )}
+            {isLive && clock && (
+              <div className="mt-3">
+                <div className="font-display text-4xl font-bold tabular-nums">{clock}</div>
+                <p className="text-xs uppercase text-muted-foreground">{periodLabel(match.current_period)}</p>
+              </div>
             )}
           </div>
 
