@@ -9,6 +9,7 @@ import { toBogotaDate } from "@/lib/dateUtils";
 import { IS_PRESEASON } from "@/lib/tournament";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
+import { useMatchClock, periodShort } from "@/lib/matchClock";
 
 const teamColorMap: Record<string, string> = {
   vikings: "bg-team-vikings",
@@ -71,6 +72,37 @@ export default function Home() {
       });
       return map;
     },
+  });
+
+  const { data: liveMatches } = useQuery({
+    queryKey: ["live-matches", tournamentId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("matches")
+        .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
+        .eq("tournament_id", tournamentId)
+        .eq("status", "live")
+        .order("start_time", { ascending: true });
+      return data || [];
+    },
+    refetchInterval: 15000,
+  });
+
+  const _unusedPlayoffProgress = useQuery({
+    queryKey: ["playoff-progress", tournamentId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("matches")
+        .select("stage, winner_team_id")
+        .eq("tournament_id", tournamentId)
+        .in("stage", ["P1A", "P1B", "SEMI", "P2"]);
+      const map: Record<string, boolean> = {};
+      (data || []).forEach((m: any) => {
+        map[m.stage] = !!m.winner_team_id;
+      });
+      return map;
+    },
+    enabled: false,
   });
 
   const getPlayoffPlaceholders = (stage: string) => {
