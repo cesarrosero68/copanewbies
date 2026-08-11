@@ -221,6 +221,16 @@ export default function Home() {
 
       {/* Upcoming Matches */}
       <section>
+        {liveMatches && liveMatches.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-display text-2xl font-bold uppercase mb-4">En Vivo</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {liveMatches.map((match: any) => (
+                <LiveMatchCard key={match.id} match={match} to={withEdition(`/match/${match.id}`)} />
+              ))}
+            </div>
+          </div>
+        )}
         <h2 className="font-display text-2xl font-bold uppercase mb-4">Próximos Partidos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {upcomingMatches?.map((match: any) => {
