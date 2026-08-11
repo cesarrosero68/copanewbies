@@ -9,6 +9,7 @@ import { toBogotaDate } from "@/lib/dateUtils";
 import { IS_PRESEASON } from "@/lib/tournament";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
+import { useMatchClock, periodShort } from "@/lib/matchClock";
 
 const teamColorMap: Record<string, string> = {
   vikings: "bg-team-vikings",
@@ -17,6 +18,36 @@ const teamColorMap: Record<string, string> = {
   "rabbits-chiks": "bg-team-rabbits",
   aguilas: "bg-team-aguilas",
 };
+
+function LiveMatchCard({ match, to }: { match: any; to: string }) {
+  const clock = useMatchClock(match);
+  return (
+    <Link to={to}>
+      <Card className="border-destructive hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1">
+              <TeamLogo team={match.home_team} size={40} />
+              <span className="font-medium text-sm">{match.home_team?.name}</span>
+            </div>
+            <div className="flex items-center gap-2 font-display text-2xl font-bold px-4">
+              <span>{match.reg_home_score ?? 0}</span>
+              <span className="text-muted-foreground text-lg">-</span>
+              <span>{match.reg_away_score ?? 0}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <span className="font-medium text-sm">{match.away_team?.name}</span>
+              <TeamLogo team={match.away_team} size={40} />
+            </div>
+          </div>
+          <Badge variant="destructive" className="mx-auto mt-2 block w-fit text-xs animate-pulse">
+            {clock ? `En vivo · ${periodShort(match.current_period)} · ${clock}` : "🔴 En Juego"}
+          </Badge>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
 
 export default function Home() {
   const { tournamentId, viewedTournament, isReadOnly } = useTournament();
@@ -71,6 +102,20 @@ export default function Home() {
       });
       return map;
     },
+  });
+
+  const { data: liveMatches } = useQuery({
+    queryKey: ["live-matches", tournamentId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("matches")
+        .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
+        .eq("tournament_id", tournamentId)
+        .eq("status", "live")
+        .order("start_time", { ascending: true });
+      return data || [];
+    },
+    refetchInterval: 15000,
   });
 
   const getPlayoffPlaceholders = (stage: string) => {
@@ -206,6 +251,16 @@ export default function Home() {
 
       {/* Upcoming Matches */}
       <section>
+        {liveMatches && liveMatches.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-display text-2xl font-bold uppercase mb-4">En Vivo</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {liveMatches.map((match: any) => (
+                <LiveMatchCard key={match.id} match={match} to={withEdition(`/match/${match.id}`)} />
+              ))}
+            </div>
+          </div>
+        )}
         <h2 className="font-display text-2xl font-bold uppercase mb-4">Próximos Partidos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {upcomingMatches?.map((match: any) => {

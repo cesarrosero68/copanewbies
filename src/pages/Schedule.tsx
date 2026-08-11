@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TeamLogo from "@/components/TeamLogo";
+import { useMatchClock, periodShort } from "@/lib/matchClock";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTournament } from "@/lib/tournamentContext";
 
@@ -55,6 +56,7 @@ function MatchCard({
   const homeName = showHomePlaceholder ? homePlaceholder : match.home_team?.name;
   const awayName = showAwayPlaceholder ? awayPlaceholder : match.away_team?.name;
   const { isReadOnly, viewedTournamentId } = useTournament();
+  const clock = useMatchClock(match);
   const withEdition = (path: string) => (isReadOnly ? `${path}?edition=${viewedTournamentId}` : path);
   return (
     <Link to={isClickable ? withEdition(`/match/${match.id}`) : "#"}>
@@ -75,7 +77,9 @@ function MatchCard({
           {/* Desktop layout */}
           <div className="hidden sm:flex items-center justify-between gap-4">
             <Badge variant={statusColors[match.status] as any} className="text-xs shrink-0">
-              {statusLabels[match.status]}
+              {isLive && clock
+                ? `En vivo · ${periodShort(match.current_period)} · ${clock}`
+                : statusLabels[match.status]}
             </Badge>
             {match.notes?.toUpperCase().includes("APLAZADO") && (
               <Badge className="text-xs shrink-0 bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
@@ -118,7 +122,9 @@ function MatchCard({
           <div className="sm:hidden space-y-2">
             <div className="flex items-center justify-between">
               <Badge variant={statusColors[match.status] as any} className="text-xs">
-                {statusLabels[match.status]}
+                {isLive && clock
+                  ? `En vivo · ${periodShort(match.current_period)} · ${clock}`
+                  : statusLabels[match.status]}
               </Badge>
               {match.notes?.toUpperCase().includes("APLAZADO") && (
                 <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">Aplazado</Badge>
