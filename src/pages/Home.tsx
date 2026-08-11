@@ -88,23 +88,6 @@ export default function Home() {
     refetchInterval: 15000,
   });
 
-  const _unusedPlayoffProgress = useQuery({
-    queryKey: ["playoff-progress", tournamentId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("matches")
-        .select("stage, winner_team_id")
-        .eq("tournament_id", tournamentId)
-        .in("stage", ["P1A", "P1B", "SEMI", "P2"]);
-      const map: Record<string, boolean> = {};
-      (data || []).forEach((m: any) => {
-        map[m.stage] = !!m.winner_team_id;
-      });
-      return map;
-    },
-    enabled: false,
-  });
-
   const getPlayoffPlaceholders = (stage: string) => {
     const p1aDone = playoffProgress?.["P1A"];
     const p1bDone = playoffProgress?.["P1B"];
