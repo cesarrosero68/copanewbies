@@ -24,6 +24,7 @@ import {
   periodMs,
   remainingMs,
 } from "@/lib/matchClock";
+import { usePenaltyClock } from "@/lib/matchClock";
 
 const PENALTY_TYPES = [
   { code: "BC", desc: "BODY CHECKING" },
@@ -883,6 +884,22 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     },
   });
 
+  const endPenaltyEarly = useMutation({
+    mutationFn: async (penaltyId: string) => {
+      const { error } = await supabase
+        .from("penalty_events")
+        .update({ ended_early: true, ended_at: new Date().toISOString() })
+        .eq("id", penaltyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
+      queryClient.invalidateQueries({ queryKey: ["active-penalties", matchId] });
+      toast({ title: "Sanción terminada" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const canAdd = !!playerId && !!penaltyType && gameMinutes !== "";
 
   return (
@@ -897,9 +914,16 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
                 <Badge variant="outline" className="ml-2 text-xs">{p.penalty_type}</Badge>
                 <span className="text-xs text-muted-foreground ml-2">- {p.team?.name}</span>
               </div>
-              {!disabled && (
-                <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={() => deletePenalty.mutate(p.id)}>✕</Button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <PenaltyCountdown
+                  match={match}
+                  penalty={p}
+                  onEndEarly={disabled ? undefined : () => endPenaltyEarly.mutate(p.id)}
+                />
+                {!disabled && (
+                  <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={() => deletePenalty.mutate(p.id)}>✕</Button>
+                )}
+              </div>
             </div>
           ))}
           {(!penalties || penalties.length === 0) && <p className="text-sm text-muted-foreground">Sin sanciones registradas</p>}
