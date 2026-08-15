@@ -10,6 +10,7 @@ import { IS_PRESEASON } from "@/lib/tournament";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 import { useMatchClock, periodShort } from "@/lib/matchClock";
+import ActivePenalties from "@/components/ActivePenalties";
 
 const teamColorMap: Record<string, string> = {
   vikings: "bg-team-vikings",
@@ -43,6 +44,7 @@ function LiveMatchCard({ match, to }: { match: any; to: string }) {
           <Badge variant="destructive" className="mx-auto mt-2 block w-fit text-xs animate-pulse">
             {clock ? `En vivo · ${periodShort(match.current_period)} · ${clock}` : "🔴 En Juego"}
           </Badge>
+          <ActivePenalties match={match} className="mt-2 justify-center" />
         </CardContent>
       </Card>
     </Link>
