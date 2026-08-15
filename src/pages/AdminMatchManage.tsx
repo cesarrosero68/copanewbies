@@ -1034,3 +1034,22 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     </Card>
   );
 }
+
+function PenaltyCountdown({ match, penalty, onEndEarly }: { match: any; penalty: any; onEndEarly?: () => void }) {
+  const clock = usePenaltyClock(match, penalty);
+  if (!clock) {
+    return penalty.ended_early ? (
+      <Badge variant="secondary" className="text-xs">Terminada</Badge>
+    ) : null;
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Badge variant="outline" className="text-xs font-mono tabular-nums">{clock}</Badge>
+      {onEndEarly && (
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEndEarly}>
+          Terminar sanción
+        </Button>
+      )}
+    </div>
+  );
+}
