@@ -603,6 +603,47 @@ export type Database = {
           },
         ]
       }
+      sponsors: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          logo_url: string | null
+          name: string
+          speed: string | null
+          tournament_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          speed?: string | null
+          tournament_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          speed?: string | null
+          tournament_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsors_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standings_aggregate: {
         Row: {
           draws: number
@@ -739,6 +780,45 @@ export type Database = {
           },
         ]
       }
+      tournament_awards: {
+        Row: {
+          award_type: string
+          created_at: string | null
+          id: string
+          player_id: string | null
+          tournament_id: string | null
+        }
+        Insert: {
+          award_type: string
+          created_at?: string | null
+          id?: string
+          player_id?: string | null
+          tournament_id?: string | null
+        }
+        Update: {
+          award_type?: string
+          created_at?: string | null
+          id?: string
+          player_id?: string | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_awards_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_awards_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           bg_color: string | null
@@ -756,6 +836,7 @@ export type Database = {
           rules_json: Json | null
           season: string
           semester: string | null
+          sponsors_enabled: boolean | null
           status: string
           text_color: string | null
           title_color: string | null
@@ -777,6 +858,7 @@ export type Database = {
           rules_json?: Json | null
           season: string
           semester?: string | null
+          sponsors_enabled?: boolean | null
           status?: string
           text_color?: string | null
           title_color?: string | null
@@ -798,6 +880,7 @@ export type Database = {
           rules_json?: Json | null
           season?: string
           semester?: string | null
+          sponsors_enabled?: boolean | null
           status?: string
           text_color?: string | null
           title_color?: string | null
