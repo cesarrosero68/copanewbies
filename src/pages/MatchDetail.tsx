@@ -9,6 +9,7 @@ import { es } from "date-fns/locale";
 import { toBogotaDate } from "@/lib/dateUtils";
 import TeamLogo from "@/components/TeamLogo";
 import { useMatchClock, periodLabel } from "@/lib/matchClock";
+import ActivePenalties from "@/components/ActivePenalties";
 import { useTournament } from "@/lib/tournamentContext";
 
 const teamColorMap: Record<string, string> = {
@@ -119,6 +120,7 @@ export default function MatchDetail() {
                 <p className="text-xs uppercase text-muted-foreground">{periodLabel(match.current_period)}</p>
               </div>
             )}
+            {isLive && <ActivePenalties match={match} className="mt-2 justify-center" />}
           </div>
 
           <div className="flex items-center justify-center gap-8">

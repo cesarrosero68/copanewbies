@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TeamLogo from "@/components/TeamLogo";
 import { useMatchClock, periodShort } from "@/lib/matchClock";
+import ActivePenalties from "@/components/ActivePenalties";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTournament } from "@/lib/tournamentContext";
 
@@ -117,6 +118,7 @@ function MatchCard({
               {match.start_time ? format(toBogotaDate(match.start_time), "d MMM HH:mm", { locale: es }) : "TBD"}
             </div>
           </div>
+          {isLive && <ActivePenalties match={match} className="hidden sm:flex mt-2" />}
 
           {/* Mobile layout */}
           <div className="sm:hidden space-y-2">

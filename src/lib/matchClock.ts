@@ -73,6 +73,72 @@ export function isValidMmSs(value: string): boolean {
   return /^\d{1,2}:[0-5]\d$/.test(value.trim());
 }
 
+export function parseMmSsToMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const parts = value.trim().split(":");
+  if (parts.length !== 2) return 0;
+  const m = parseInt(parts[0], 10);
+  const s = parseInt(parts[1], 10);
+  if (!Number.isFinite(m) || !Number.isFinite(s)) return 0;
+  return m * 60000 + s * 1000;
+}
+
+export interface PenaltyClockFields {
+  time_mmss: string | null;
+  duration_mmss: string;
+  period: string;
+  ended_early?: boolean | null;
+}
+
+/**
+ * Remaining penalty time in ms, or null when the penalty is over / ended early.
+ * `time_mmss` is the remaining period time when the penalty was registered.
+ */
+export function penaltyRemainingMs(
+  match: ClockMatch,
+  penalty: PenaltyClockFields | null | undefined,
+  now: number = Date.now()
+): number | null {
+  if (!penalty || penalty.ended_early) return null;
+  const durationMs = parseMmSsToMs(penalty.duration_mmss);
+  if (durationMs <= 0) return null;
+  const registeredRemaining = parseMmSsToMs(penalty.time_mmss);
+  const currentPeriod = String(match?.current_period ?? 1);
+  const elapsed = elapsedMs(match, now);
+
+  let remaining: number;
+  if (String(penalty.period) === currentPeriod) {
+    const elapsedAtRegistration = Math.max(0, periodMs(match) - registeredRemaining);
+    remaining = durationMs - Math.max(0, elapsed - elapsedAtRegistration);
+  } else {
+    // Penalty came from an earlier period: it burned `registeredRemaining` there,
+    // then keeps counting down against the new period's elapsed time.
+    remaining = durationMs - registeredRemaining - elapsed;
+  }
+
+  if (remaining <= 0) return null;
+  return remaining;
+}
+
+/** Countdown "mm:ss" for a penalty, ticking every second; null when over or ended early. */
+export function usePenaltyClock(
+  match: ClockMatch,
+  penalty: PenaltyClockFields | null | undefined
+): string | null {
+  const running = isClockRunning(match);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [running, match?.clock_started_at]);
+
+  const remaining = penaltyRemainingMs(match, penalty, running ? now : Date.now());
+  if (remaining === null) return null;
+  return formatClock(remaining);
+}
+
 /** Countdown "mm:ss" ticking every second, or null when there is nothing live to show. */
 export function useMatchClock(match: ClockMatch): string | null {
   const running = isClockRunning(match);
