@@ -215,7 +215,7 @@ export default function Home() {
           {homeTeams.map((team: any) => (
             <Link
               key={team.id}
-              to={withEdition("/equipos")}
+              to={withEdition(`/equipos/${team.id}`)}
               className="flex flex-col items-center gap-2 w-28 hover:opacity-80 transition-opacity"
             >
               {team.logo_url ? (
