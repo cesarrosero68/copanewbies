@@ -74,6 +74,20 @@ export default function Home() {
     },
   });
 
+  const { data: homeTeams } = useQuery({
+    queryKey: ["home-teams", viewedTournament?.id],
+    queryFn: async () => {
+      if (!viewedTournament?.id) return [];
+      const { data } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("tournament_id", viewedTournament.id)
+        .order("name");
+      return data || [];
+    },
+    enabled: !!viewedTournament?.id,
+  });
+
   const { data: upcomingMatches } = useQuery({
     queryKey: ["upcoming-matches", tournamentId],
     queryFn: async () => {
@@ -208,6 +222,18 @@ export default function Home() {
           {subtitleSemester ? ` • ${subtitleSemester}` : ""}
         </p>
       </section>
+
+      {/* Team Logos Strip */}
+      {homeTeams && homeTeams.length > 0 && (
+        <section className="flex flex-wrap justify-center gap-x-10 gap-y-6">
+          {homeTeams.map((team: any) => (
+            <div key={team.id} className="flex flex-col items-center gap-2 w-20">
+              <TeamLogo team={team} size={64} />
+              <span className="text-xs font-medium text-center leading-tight">{team.name}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Recent Results — hidden in PRESEASON */}
       {!IS_PRESEASON && recentMatches && recentMatches.length > 0 && (
