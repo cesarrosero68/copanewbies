@@ -2,30 +2,54 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { IS_PRESEASON } from "@/lib/tournament";
 import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Standings() {
-  const { viewedTournamentId: tournamentId, isReadOnly } = useTournament();
+  const { viewedTournamentId: tournamentId, viewedTournament, isReadOnly } = useTournament();
   const withEdition = (path: string) => (isReadOnly ? `${path}?edition=${tournamentId}` : path);
   const { data: standings } = useQuery({
     queryKey: ["standings-full", tournamentId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("standings_aggregate")
-        .select("*, team:teams(*)")
-        .eq("tournament_id", tournamentId)
-        .order("rank", { ascending: true });
-      return data || [];
+      // Partimos siempre de la lista real de equipos (teams), y le pegamos
+      // los datos agregados de standings_aggregate cuando existan. Así la
+      // tabla muestra los 7 equipos en cero incluso si nadie ha jugado
+      // todavía, en vez de depender de que standings_aggregate ya tenga fila.
+      const [{ data: teams }, { data: agg }] = await Promise.all([
+        supabase.from("teams").select("*").eq("tournament_id", tournamentId).order("name"),
+        supabase.from("standings_aggregate").select("*").eq("tournament_id", tournamentId),
+      ]);
+      const aggByTeam = new Map<string, any>((agg || []).map((a: any) => [a.team_id, a]));
+      const rows = (teams || []).map((t: any) => {
+        const a = aggByTeam.get(t.id);
+        return {
+          team_id: t.id,
+          team: t,
+          played: a?.played ?? 0,
+          wins: a?.wins ?? 0,
+          draws: a?.draws ?? 0,
+          losses: a?.losses ?? 0,
+          gf: a?.gf ?? 0,
+          gc: a?.gc ?? 0,
+          gd: a?.gd ?? 0,
+          points: a?.points ?? 0,
+        };
+      });
+      // Orden: primero por puntos desc, luego DG desc, luego nombre — igual
+      // criterio que usa la vista, para que el orden no cambie cuando
+      // empiecen a jugarse partidos.
+      rows.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.name.localeCompare(b.team.name));
+      return rows;
     },
   });
 
   return (
     <div className="container py-8">
       <h1 className="font-display text-4xl font-bold uppercase mb-2">Tabla de Posiciones</h1>
-      <p className="text-muted-foreground mb-6">Fase Regular • Copa Newbies II 2026</p>
+      <p className="text-muted-foreground mb-6">
+        Fase Regular{viewedTournament?.name ? ` • ${viewedTournament.name}` : ""}
+      </p>
 
       <Tabs defaultValue="standings">
         <TabsList className="mb-4">
@@ -64,14 +88,14 @@ export default function Standings() {
                           {s.team?.name}
                         </Link>
                       </td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.played}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.wins}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.draws}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.losses}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.gf}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.gc}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.gd > 0 ? `+${s.gd}` : s.gd}</td>
-                      <td className="p-3 text-center font-display font-bold text-lg">{IS_PRESEASON ? 0 : s.points}</td>
+                      <td className="p-3 text-center">{s.played}</td>
+                      <td className="p-3 text-center">{s.wins}</td>
+                      <td className="p-3 text-center">{s.draws}</td>
+                      <td className="p-3 text-center">{s.losses}</td>
+                      <td className="p-3 text-center">{s.gf}</td>
+                      <td className="p-3 text-center">{s.gc}</td>
+                      <td className="p-3 text-center">{s.gd > 0 ? `+${s.gd}` : s.gd}</td>
+                      <td className="p-3 text-center font-display font-bold text-lg">{s.points}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -84,7 +108,9 @@ export default function Standings() {
               <strong>Desempates:</strong> 1) Pts → 2) Mayor W → 3) H2H DG → 4) H2H GC menor
             </p>
             <p>Victoria = 3 pts • Empate = 1 pt • Derrota = 0 pts</p>
-            {IS_PRESEASON && <p className="italic mt-2">* Estadísticas en cero — el torneo aún no ha comenzado.</p>}
+            {standings && standings.length > 0 && standings.every((s: any) => s.played === 0) && (
+              <p className="italic mt-2">* Estadísticas en cero — el torneo aún no ha comenzado.</p>
+            )}
           </div>
         </TabsContent>
 
