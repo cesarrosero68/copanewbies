@@ -6,6 +6,7 @@ import copaLogo from "@/assets/copa-newbies-logo.png";
 import { useTournament } from "@/lib/tournamentContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import SponsorsMarquee from "@/components/SponsorsMarquee";
 
 const navLinks = [
   { to: "/", label: "Inicio" },
@@ -14,6 +15,8 @@ const navLinks = [
   { to: "/players", label: "Jugadores" },
   { to: "/estadisticas", label: "Estadísticas" },
   { to: "/playoffs", label: "Playoffs" },
+  { to: "/fairplay", label: "Fair Play" },
+  { to: "/podio", label: "Podio" },
   { to: "/skills", label: "Skills" },
   { to: "/editions", label: "Ediciones" },
 ];
@@ -28,6 +31,8 @@ const bottomBarLinks = [
 const moreLinks = [
   { to: "/estadisticas", label: "Estadísticas" },
   { to: "/playoffs", label: "Playoffs" },
+  { to: "/fairplay", label: "Fair Play" },
+  { to: "/podio", label: "Podio" },
   { to: "/skills", label: "Skills" },
   { to: "/editions", label: "Ediciones" },
   { to: "/admin", label: "Admin" },
@@ -103,6 +108,7 @@ export default function PublicLayout() {
       </main>
 
       {/* Footer */}
+      <SponsorsMarquee />
       <footer
         className="border-t border-border bg-secondary text-secondary-foreground/80 py-6"
         style={{ background: "var(--footer-bg, hsl(var(--secondary)))" }}

@@ -571,6 +571,12 @@ export default function AdminDashboard() {
           <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
             <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
           </Button>
+          <Link to="/admin/reconocimientos">
+            <Button variant="outline">Reconocimientos</Button>
+          </Link>
+          <Link to="/admin/patrocinadores">
+            <Button variant="outline">Patrocinadores</Button>
+          </Link>
         </div>
 
         <div className="space-y-3">

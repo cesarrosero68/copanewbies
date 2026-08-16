@@ -40,6 +40,34 @@ export default function AdminPlantillas() {
   const [staffFirst, setStaffFirst] = useState("");
   const [staffLast, setStaffLast] = useState("");
   const [staffRole, setStaffRole] = useState("ENTRENADOR");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleTeamLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedTeamId) return;
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `teams/${selectedTeamId}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("sponsors").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const publicUrl = supabase.storage.from("sponsors").getPublicUrl(path).data.publicUrl;
+      const { error } = await supabase
+        .from("teams")
+        .update({ logo_url: `${publicUrl}?v=${Date.now()}` })
+        .eq("id", selectedTeamId);
+      if (error) throw error;
+      toast({ title: "Logo actualizado" });
+      await qc.invalidateQueries({ queryKey: ["plantillas-teams"] });
+      qc.invalidateQueries({ queryKey: ["standings-full"] });
+      qc.invalidateQueries({ queryKey: ["teams"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -287,6 +315,14 @@ export default function AdminPlantillas() {
               <TeamLogo team={selectedTeam} size={40} />
               <h2 className="font-display text-2xl font-bold">{selectedTeam.name}</h2>
               <div className="ml-auto">
+                <label className="mr-2 inline-flex">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleTeamLogo} disabled={uploadingLogo} />
+                  <Button variant="outline" size="sm" asChild>
+                    <span className="cursor-pointer">
+                      <Upload className="w-4 h-4 mr-1" /> {uploadingLogo ? "Subiendo..." : "Subir logo"}
+                    </span>
+                  </Button>
+                </label>
                 <Button variant="outline" size="sm" className="mr-2" onClick={() => setCsvOpen(true)}>
                   <FileUp className="w-4 h-4 mr-1" /> Importar CSV
                 </Button>
