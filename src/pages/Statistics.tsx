@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import TeamLogo from "@/components/TeamLogo";
 import { BarChart3, Target, HandHeart, Shield, Scale, Trophy, Medal, Award } from "lucide-react";
+import { mmssFromSeconds, secondsFromMmss } from "@/lib/statsUtils";
 
 const AWARD_LABELS: Record<string, string> = {
   mvp: "MVP del torneo",
@@ -18,18 +19,6 @@ const AWARD_LABELS: Record<string, string> = {
 
 type Team = { id: string; name: string; logo_url: string | null; slug: string };
 type Player = { id: string; name: string; team_id: string; position: string | null };
-
-function mmssFromSeconds(total: number) {
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function secondsFromMmss(mmss: string | null | undefined) {
-  if (!mmss) return 0;
-  const [m, s] = mmss.split(":").map((n) => parseInt(n) || 0);
-  return (m || 0) * 60 + (s || 0);
-}
 
 export default function Statistics() {
   const { viewedTournamentId: tournamentId } = useTournament();
