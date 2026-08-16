@@ -12,7 +12,7 @@ const navLinks = [
   { to: "/", label: "Inicio" },
   { to: "/schedule", label: "Calendario" },
   { to: "/standings", label: "Tabla" },
-  { to: "/players", label: "Jugadores" },
+  { to: "/players", label: "Equipos" },
   { to: "/estadisticas", label: "Estadísticas" },
   { to: "/playoffs", label: "Playoffs" },
   { to: "/fairplay", label: "Fair Play" },
@@ -25,7 +25,7 @@ const bottomBarLinks = [
   { to: "/", label: "Inicio", icon: HomeIcon },
   { to: "/schedule", label: "Calendario", icon: Calendar },
   { to: "/standings", label: "Tabla", icon: BarChart },
-  { to: "/players", label: "Jugadores", icon: Users },
+  { to: "/players", label: "Equipos", icon: Users },
 ];
 
 const moreLinks = [
