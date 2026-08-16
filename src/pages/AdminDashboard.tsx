@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Users, Palette, Trash2, CalendarPlus, Download } from "lucide-react";
+import { ChevronLeft, Users, Palette, Trash2, CalendarPlus, Download, MapPin } from "lucide-react";
 import * as XLSX from "xlsx";
 import ImportCalendarDialog from "@/components/admin/ImportCalendarDialog";
 import type { Session } from "@supabase/supabase-js";
@@ -104,6 +104,10 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { activeTournamentId, activeTournament, refresh: refreshTournaments } = useTournament();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [venueEditMatch, setVenueEditMatch] = useState<any | null>(null);
+  const [venueDraft, setVenueDraft] = useState("");
+  const [venueUrlDraft, setVenueUrlDraft] = useState("");
+  const [savingVenue, setSavingVenue] = useState(false);
   const [newName, setNewName] = useState("");
   const [newYear, setNewYear] = useState<string>(String(new Date().getFullYear()));
   const [newSemester, setNewSemester] = useState("");
@@ -443,6 +447,31 @@ export default function AdminDashboard() {
       </div>
     );
 
+  const openVenueEdit = (match: any) => {
+    setVenueEditMatch(match);
+    setVenueDraft(match.venue || "");
+    setVenueUrlDraft(match.venue_maps_url || "");
+  };
+
+  const saveVenue = async () => {
+    if (!venueEditMatch) return;
+    setSavingVenue(true);
+    try {
+      const { error } = await supabase
+        .from("matches")
+        .update({ venue: venueDraft.trim() || null, venue_maps_url: venueUrlDraft.trim() || null })
+        .eq("id", venueEditMatch.id);
+      if (error) throw error;
+      toast({ title: "Sede actualizada" });
+      qc.invalidateQueries({ queryKey: ["admin-matches"] });
+      setVenueEditMatch(null);
+    } catch (e: any) {
+      toast({ title: "Error al guardar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingVenue(false);
+    }
+  };
+
   // Sort: live first, then scheduled, then final, then locked (locked sorted by start_time)
   const sortedMatches = [...(matches || [])].sort((a: any, b: any) => {
     const order: Record<string, number> = { live: 0, scheduled: 1, final: 2, locked: 3 };
@@ -607,17 +636,22 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant={match.status === "live" ? "default" : "outline"}
-                    onClick={() => navigate(`/admin/match/${match.id}`)}
-                  >
-                    {match.status === "scheduled"
-                      ? "Gestionar"
-                      : match.status === "live"
-                        ? "🔴 En Juego"
-                        : "Ver Detalle"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => openVenueEdit(match)}>
+                      <MapPin className="w-4 h-4 mr-1" /> {match.venue || "Sede"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={match.status === "live" ? "default" : "outline"}
+                      onClick={() => navigate(`/admin/match/${match.id}`)}
+                    >
+                      {match.status === "scheduled"
+                        ? "Gestionar"
+                        : match.status === "live"
+                          ? "🔴 En Juego"
+                          : "Ver Detalle"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -630,6 +664,47 @@ export default function AdminDashboard() {
           tournamentId={activeTournamentId}
           teams={adminTeams || []}
         />
+
+        <Dialog open={!!venueEditMatch} onOpenChange={(o) => !o && setVenueEditMatch(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Sede del partido {venueEditMatch ? `#${venueEditMatch.match_number}` : ""}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="venue-name">Nombre de la sede</Label>
+                <Input
+                  id="venue-name"
+                  value={venueDraft}
+                  onChange={(e) => setVenueDraft(e.target.value)}
+                  placeholder="Ej. Golden Sport Center"
+                />
+              </div>
+              <div>
+                <Label htmlFor="venue-url">URL exacta de Google Maps (opcional)</Label>
+                <Input
+                  id="venue-url"
+                  value={venueUrlDraft}
+                  onChange={(e) => setVenueUrlDraft(e.target.value)}
+                  placeholder="https://maps.google.com/?q=..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Si la dejas vacía, se genera un link de búsqueda automático a partir del nombre de la sede.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setVenueEditMatch(null)} disabled={savingVenue}>
+                Cancelar
+              </Button>
+              <Button onClick={saveVenue} disabled={savingVenue}>
+                {savingVenue ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
