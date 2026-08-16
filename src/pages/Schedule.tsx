@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TeamLogo from "@/components/TeamLogo";
+import { MapPin } from "lucide-react";
 import { useMatchClock, periodShort } from "@/lib/matchClock";
 import ActivePenalties from "@/components/ActivePenalties";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,21 +42,17 @@ const stageLabels: Record<string, string> = {
 function MatchCard({
   match,
   showStage = false,
-  homePlaceholder,
-  awayPlaceholder,
 }: {
   match: any;
   showStage?: boolean;
-  homePlaceholder?: string;
-  awayPlaceholder?: string;
 }) {
   const isPlayed = match.status === "final" || match.status === "locked";
   const isLive = match.status === "live";
   const isClickable = isPlayed || isLive;
-  const showHomePlaceholder = !!homePlaceholder;
-  const showAwayPlaceholder = !!awayPlaceholder;
-  const homeName = showHomePlaceholder ? homePlaceholder : match.home_team?.name;
-  const awayName = showAwayPlaceholder ? awayPlaceholder : match.away_team?.name;
+  const showHomePlaceholder = !match.home_team && !!match.home_team_label;
+  const showAwayPlaceholder = !match.away_team && !!match.away_team_label;
+  const homeName = showHomePlaceholder ? match.home_team_label : match.home_team?.name;
+  const awayName = showAwayPlaceholder ? match.away_team_label : match.away_team?.name;
   const { isReadOnly, viewedTournamentId } = useTournament();
   const clock = useMatchClock(match);
   const withEdition = (path: string) => (isReadOnly ? `${path}?edition=${viewedTournamentId}` : path);
@@ -170,6 +167,21 @@ function MatchCard({
               {match.so_played ? "Gana en Penales (SO)" : "Gana en OT"}
             </p>
           )}
+
+          {match.venue && (
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`, "_blank", "noopener,noreferrer");
+              }}
+              className="mt-2 flex items-center justify-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+            >
+              <MapPin className="w-3 h-3" /> {match.venue}
+            </span>
+          )}
         </CardContent>
       </Card>
     </Link>
@@ -280,57 +292,9 @@ export default function Schedule() {
         <TabsContent value="playoffs">
           <div className="space-y-3">
             {playoffMatches && playoffMatches.length > 0 ? (
-              (() => {
-                const byStage: Record<string, any> = {};
-                playoffMatches.forEach((m: any) => {
-                  byStage[m.stage] = m;
-                });
-                const hasWinner = (m: any) => !!m?.winner_team_id;
-                const p1aDone = hasWinner(byStage.P1A);
-                const p1bDone = hasWinner(byStage.P1B);
-                const semiDone = hasWinner(byStage.SEMI);
-                const p2Done = hasWinner(byStage.P2);
-
-                const placeholdersFor = (stage: string): { home?: string; away?: string } => {
-                  switch (stage) {
-                    case "SEMI":
-                      return {
-                        home: p1aDone ? undefined : "Ganador P1A",
-                        away: p1bDone ? undefined : "Ganador P1B",
-                      };
-                    case "P2":
-                      return {
-                        home: p1aDone ? undefined : "Perdedor P1A",
-                        away: p1bDone ? undefined : "Perdedor P1B",
-                      };
-                    case "THIRD":
-                      return {
-                        home: semiDone ? undefined : "Perdedor Semi",
-                        away: p2Done ? undefined : "Ganador P2",
-                      };
-                    case "FINAL":
-                      return {
-                        home: undefined,
-                        away: semiDone ? undefined : "Ganador Semi",
-                      };
-                    default:
-                      return {};
-                  }
-                };
-
-                return playoffMatches.map((match: any) => {
-                  const ph = placeholdersFor(match.stage);
-                  return (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      showStage
-                      homePlaceholder={ph.home}
-                      awayPlaceholder={ph.away}
-                    />
-                  );
-                });
-              })()
+              playoffMatches.map((match: any) => (
+                <MatchCard key={match.id} match={match} showStage />
+              ))
             ) : (
               <p className="text-muted-foreground text-center py-8">No hay partidos de playoffs programados aún.</p>
             )}
