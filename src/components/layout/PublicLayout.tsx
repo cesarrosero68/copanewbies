@@ -14,9 +14,6 @@ const navLinks = [
   { to: "/standings", label: "Tabla" },
   { to: "/players", label: "Equipos" },
   { to: "/estadisticas", label: "Estadísticas" },
-  { to: "/fairplay", label: "Fair Play" },
-  { to: "/podio", label: "Podio" },
-  { to: "/skills", label: "Skills" },
   { to: "/editions", label: "Ediciones" },
 ];
 
@@ -29,9 +26,6 @@ const bottomBarLinks = [
 
 const moreLinks = [
   { to: "/estadisticas", label: "Estadísticas" },
-  { to: "/fairplay", label: "Fair Play" },
-  { to: "/podio", label: "Podio" },
-  { to: "/skills", label: "Skills" },
   { to: "/editions", label: "Ediciones" },
   { to: "/admin", label: "Admin" },
 ];
