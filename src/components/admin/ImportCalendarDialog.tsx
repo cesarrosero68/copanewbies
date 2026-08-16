@@ -16,9 +16,12 @@ type Row = {
   awayName: string;
   home_team_id: string | null;
   away_team_id: string | null;
+  homeIsPlaceholder: boolean;
+  awayIsPlaceholder: boolean;
   start_time: string | null;
   rawDate: string;
   stage: string;
+  venue: string;
   errors: string[];
 };
 
@@ -56,8 +59,13 @@ export default function ImportCalendarDialog({
         const awayName = r["visitante"] || "";
         const home = findTeam(homeName);
         const away = findTeam(awayName);
-        if (!home) errors.push(`Equipo local no encontrado: "${homeName}"`);
-        if (!away) errors.push(`Equipo visitante no encontrado: "${awayName}"`);
+        // Si el equipo no coincide con ninguno registrado, se guarda como texto
+        // "por definir" (placeholder) en vez de marcar error — útil para partidos
+        // de playoff cuyo rival real todavía no se conoce (ej. "1º de la tabla").
+        const homeIsPlaceholder = !home && homeName.trim().length > 0;
+        const awayIsPlaceholder = !away && awayName.trim().length > 0;
+        if (!home && !homeIsPlaceholder) errors.push(`Falta el equipo local`);
+        if (!away && !awayIsPlaceholder) errors.push(`Falta el equipo visitante`);
 
         const stage = (r["fase"] || "").toUpperCase().trim();
         if (!STAGES.includes(stage)) errors.push(`Fase inválida: "${r["fase"] || ""}"`);
@@ -76,6 +84,7 @@ export default function ImportCalendarDialog({
         }
 
         const num = parseInt(r["partido_num"] || "", 10);
+        const venue = (r["sede"] || "").trim();
 
         return {
           match_number: Number.isFinite(num) ? num : null,
@@ -84,9 +93,12 @@ export default function ImportCalendarDialog({
           awayName,
           home_team_id: home?.id ?? null,
           away_team_id: away?.id ?? null,
+          homeIsPlaceholder,
+          awayIsPlaceholder,
           start_time,
           rawDate: `${fecha} ${hora}`,
           stage,
+          venue,
           errors,
         };
       });
@@ -106,11 +118,14 @@ export default function ImportCalendarDialog({
       const payload = validRows.map((r) => ({
         tournament_id: tournamentId,
         stage: r.stage as any,
-        home_team_id: r.home_team_id!,
-        away_team_id: r.away_team_id!,
+        home_team_id: r.home_team_id,
+        away_team_id: r.away_team_id,
+        home_team_label: r.homeIsPlaceholder ? r.homeName : null,
+        away_team_label: r.awayIsPlaceholder ? r.awayName : null,
         start_time: r.start_time,
         match_number: r.match_number,
         status: "scheduled" as any,
+        venue: r.venue || null,
         notes: r.matchday ? `Jornada ${r.matchday}` : null,
       }));
       const { error } = await supabase.from("matches").insert(payload as any);
@@ -141,9 +156,9 @@ export default function ImportCalendarDialog({
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">
-          Columnas esperadas: <code>fecha_num, partido_num, local, visitante, fecha, hora, fase</code>. Fecha en
-          formato <code>YYYY-MM-DD</code>, hora <code>HH:MM</code> (hora de Colombia). Fases válidas:{" "}
-          {STAGES.join(", ")}.
+          Columnas esperadas: <code>fecha_num, partido_num, local, visitante, fecha, hora, fase, sede</code>. Fecha
+          en formato <code>YYYY-MM-DD</code>, hora <code>HH:MM</code> (hora de Colombia). Fases válidas:{" "}
+          {STAGES.join(", ")}. La columna <code>sede</code> es opcional (nombre del lugar, ej. "Golden Sport Center").
         </p>
 
         <input type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm" />
@@ -164,6 +179,7 @@ export default function ImportCalendarDialog({
                     <th className="p-2 text-left">Local</th>
                     <th className="p-2 text-left">Visitante</th>
                     <th className="p-2 text-left">Fecha / Hora</th>
+                    <th className="p-2 text-left">Sede</th>
                     <th className="p-2 text-left">Fase</th>
                     <th className="p-2 text-left">Estado</th>
                   </tr>
@@ -173,9 +189,20 @@ export default function ImportCalendarDialog({
                     <tr key={i} className={`border-t ${r.errors.length ? "bg-destructive/5" : ""}`}>
                       <td className="p-2">{r.match_number ?? "—"}</td>
                       <td className="p-2">{r.matchday || "—"}</td>
-                      <td className="p-2">{r.homeName}</td>
-                      <td className="p-2">{r.awayName}</td>
+                      <td className="p-2">
+                        {r.homeName}
+                        {r.homeIsPlaceholder && (
+                          <Badge variant="outline" className="ml-1 text-[10px]">Por definir</Badge>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        {r.awayName}
+                        {r.awayIsPlaceholder && (
+                          <Badge variant="outline" className="ml-1 text-[10px]">Por definir</Badge>
+                        )}
+                      </td>
                       <td className="p-2 whitespace-nowrap">{r.rawDate}</td>
+                      <td className="p-2">{r.venue || "—"}</td>
                       <td className="p-2">{r.stage || "—"}</td>
                       <td className="p-2">
                         {r.errors.length === 0 ? (
