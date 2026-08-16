@@ -55,11 +55,11 @@ function TeamCard({ team }: { team: any }) {
       <CardContent className="p-0">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center gap-4 p-4 text-left hover:bg-muted/30 transition-colors"
         >
           {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
-          <TeamLogo team={team} size={40} />
-          <span className="font-display font-bold text-lg flex-1 truncate">{team.name}</span>
+          <TeamLogo team={team} size={64} />
+          <span className="font-display font-bold text-xl flex-1 truncate">{team.name}</span>
           <Badge variant="outline">{players?.length ?? 0} jugadores</Badge>
         </button>
 
