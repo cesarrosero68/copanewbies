@@ -11,6 +11,7 @@ import { useTournament } from "@/lib/tournamentContext";
 import TeamLogo from "@/components/TeamLogo";
 import { useMatchClock, periodShort } from "@/lib/matchClock";
 import ActivePenalties from "@/components/ActivePenalties";
+import { MapPin } from "lucide-react";
 
 const teamColorMap: Record<string, string> = {
   vikings: "bg-team-vikings",
@@ -133,21 +134,6 @@ export default function Home() {
     },
     refetchInterval: 15000,
   });
-
-  const getPlayoffPlaceholders = (stage: string) => {
-    const p1aDone = playoffProgress?.["P1A"];
-    const p1bDone = playoffProgress?.["P1B"];
-    const semiDone = playoffProgress?.["SEMI"];
-    const p2Done = playoffProgress?.["P2"];
-    if (stage === "SEMI")
-      return { home: p1aDone ? undefined : "Ganador P1A", away: p1bDone ? undefined : "Ganador P1B" };
-    if (stage === "P2")
-      return { home: p1aDone ? undefined : "Perdedor P1A", away: p1bDone ? undefined : "Perdedor P1B" };
-    if (stage === "THIRD")
-      return { home: semiDone ? undefined : "Perdedor Semi", away: p2Done ? undefined : "Ganador P2" };
-    if (stage === "FINAL") return { home: "Reapers", away: semiDone ? undefined : "Ganador Semi" };
-    return { home: undefined, away: undefined };
-  };
 
   const { data: recentMatches } = useQuery({
     queryKey: ["recent-matches", tournamentId],
@@ -305,11 +291,10 @@ export default function Home() {
         <h2 className="font-display text-2xl font-bold uppercase mb-4">Próximos Partidos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {upcomingMatches?.map((match: any) => {
-            const ph = getPlayoffPlaceholders(match.stage);
-            const homeName = ph.home ?? match.home_team?.name;
-            const awayName = ph.away ?? match.away_team?.name;
-            const showHomeLogo = !ph.home;
-            const showAwayLogo = !ph.away;
+            const showHomeLogo = !!match.home_team;
+            const showAwayLogo = !!match.away_team;
+            const homeName = match.home_team?.name ?? match.home_team_label ?? "Por definir";
+            const awayName = match.away_team?.name ?? match.away_team_label ?? "Por definir";
             return (
               <Card key={match.id}>
                 <CardContent className="p-4">
@@ -328,6 +313,16 @@ export default function Home() {
                     <p className="text-xs text-muted-foreground text-center mt-2">
                       {format(toBogotaDate(match.start_time), "EEEE d MMM • HH:mm", { locale: es })}
                     </p>
+                  )}
+                  {match.venue && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <MapPin className="w-3 h-3" /> {match.venue}
+                    </a>
                   )}
                   <Badge className="mx-auto mt-1 block w-fit text-xs" variant="secondary">
                     {match.stage === "REGULAR" ? `Partido #${match.match_number}` : match.stage}
