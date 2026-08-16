@@ -11,7 +11,6 @@ import Home from "./pages/Home";
 import Schedule from "./pages/Schedule";
 import Standings from "./pages/Standings";
 import Players from "./pages/Players";
-import Playoffs from "./pages/Playoffs";
 import MatchDetail from "./pages/MatchDetail";
 import TeamDetail from "./pages/TeamDetail";
 import AdminLogin from "./pages/AdminLogin";
@@ -79,7 +78,6 @@ const App = () => {
             <Route path="/estadisticas" element={<Statistics />} />
             <Route path="/fairplay" element={<FairPlay />} />
             <Route path="/podio" element={<Podio />} />
-            <Route path="/playoffs" element={<Playoffs />} />
             <Route path="/editions" element={<Editions />} />
             <Route path="/match/:id" element={<MatchDetail />} />
             <Route path="/team/:slug" element={<TeamDetail />} />
