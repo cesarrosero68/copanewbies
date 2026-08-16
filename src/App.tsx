@@ -22,8 +22,12 @@ import SkillsLogin from "./pages/SkillsLogin";
 import SkillsStaff from "./pages/SkillsStaff";
 import Editions from "./pages/Editions";
 import Statistics from "./pages/Statistics";
+import FairPlay from "./pages/FairPlay";
+import Podio from "./pages/Podio";
 import AdminPlantillas from "./pages/AdminPlantillas";
 import AdminApariencia from "./pages/AdminApariencia";
+import AdminReconocimientos from "./pages/AdminReconocimientos";
+import AdminPatrocinadores from "./pages/AdminPatrocinadores";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +77,8 @@ const App = () => {
             <Route path="/standings" element={<Standings />} />
             <Route path="/players" element={<Players />} />
             <Route path="/estadisticas" element={<Statistics />} />
+            <Route path="/fairplay" element={<FairPlay />} />
+            <Route path="/podio" element={<Podio />} />
             <Route path="/playoffs" element={<Playoffs />} />
             <Route path="/editions" element={<Editions />} />
             <Route path="/match/:id" element={<MatchDetail />} />
@@ -85,6 +91,8 @@ const App = () => {
           <Route path="/admin/match/:id" element={<AdminMatchManage />} />
           <Route path="/admin/plantillas" element={<AdminPlantillas />} />
           <Route path="/admin/apariencia" element={<AdminApariencia />} />
+          <Route path="/admin/reconocimientos" element={<AdminReconocimientos />} />
+          <Route path="/admin/patrocinadores" element={<AdminPatrocinadores />} />
 
           {/* Skills routes */}
           <Route element={<PublicLayout />}>
