@@ -37,6 +37,10 @@ export default function AdminPlantillas() {
   const [csvOpen, setCsvOpen] = useState(false);
   const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [csvBusy, setCsvBusy] = useState(false);
+  const [csvPendingNew, setCsvPendingNew] = useState<any[]>([]);
+  const [csvPendingDuplicates, setCsvPendingDuplicates] = useState<any[]>([]);
+  const [csvDuplicatesOpen, setCsvDuplicatesOpen] = useState(false);
+  const [csvLastErrors, setCsvLastErrors] = useState<string[]>([]);
   const [staffFirst, setStaffFirst] = useState("");
   const [staffLast, setStaffLast] = useState("");
   const [staffRole, setStaffRole] = useState("ENTRENADOR");
@@ -163,6 +167,15 @@ export default function AdminPlantillas() {
         const playerRows: any[] = [];
         const staffRows: any[] = [];
 
+        // Fetch existing players and staff for all teams in this edition, once, for dedup matching
+        const teamIds = (teams || []).map((t: any) => t.id);
+        const { data: existingPlayers } = teamIds.length
+          ? await supabase.from("players").select("id, team_id, first_name, last_name").in("team_id", teamIds)
+          : { data: [] as any[] };
+        const { data: existingStaff } = teamIds.length
+          ? await supabase.from("team_staff").select("id, team_id, first_name, last_name").in("team_id", teamIds)
+          : { data: [] as any[] };
+
         rows.forEach((r, i) => {
           const line = i + 2;
           const teamName = r["equipo"] || "";
@@ -178,43 +191,130 @@ export default function AdminPlantillas() {
           const posUpper = normalizeName(posicion).toUpperCase();
 
           if (STAFF_ROLES.includes(posUpper)) {
-            staffRows.push({ team_id: team.id, first_name: nombre, last_name: apellido, role: posUpper });
+            const match = (existingStaff || []).find((s: any) =>
+              s.team_id === team.id &&
+              normalizeName(s.first_name || "") === normalizeName(nombre) &&
+              normalizeName(s.last_name || "") === normalizeName(apellido)
+            );
+            const row = { kind: "staff", line, team_id: team.id, teamName: team.name, first_name: nombre, last_name: apellido, role: posUpper };
+            if (match) {
+              staffRows.push({ ...row, existingId: match.id, isDuplicate: true });
+            } else {
+              staffRows.push({ ...row, isDuplicate: false });
+            }
           } else {
             const dorsal = parseInt(r["dorsal"] || "", 10);
             if (!Number.isFinite(dorsal)) { errors.push(`Fila ${line}: dorsal inválido "${r["dorsal"] || ""}"`); return; }
-            playerRows.push({
-              team_id: team.id,
-              first_name: nombre,
-              last_name: apellido,
-              name: `${nombre} ${apellido}`.trim(),
-              jersey_number: dorsal,
-              position: posicion || "Jugador",
-            });
+            const match = (existingPlayers || []).find((p: any) =>
+              p.team_id === team.id &&
+              normalizeName(p.first_name || "") === normalizeName(nombre) &&
+              normalizeName(p.last_name || "") === normalizeName(apellido)
+            );
+            const row = {
+              kind: "player", line, team_id: team.id, teamName: team.name,
+              first_name: nombre, last_name: apellido, name: `${nombre} ${apellido}`.trim(),
+              jersey_number: dorsal, position: posicion || "Jugador",
+            };
+            if (match) {
+              playerRows.push({ ...row, existingId: match.id, isDuplicate: true });
+            } else {
+              playerRows.push({ ...row, isDuplicate: false });
+            }
           }
         });
 
-        if (playerRows.length > 0) {
-          const { error } = await supabase.from("players").insert(playerRows);
-          if (error) errors.push(`Jugadores: ${error.message}`);
-        }
-        if (staffRows.length > 0) {
-          const { error } = await supabase.from("team_staff").insert(staffRows);
-          if (error) errors.push(`Cuerpo técnico: ${error.message}`);
-        }
+        const allRows = [...playerRows, ...staffRows];
+        const newRows = allRows.filter((r) => !r.isDuplicate);
+        const duplicateRows = allRows.filter((r) => r.isDuplicate);
 
-        setCsvErrors(errors);
-        toast({
-          title: `${playerRows.length} jugadores y ${staffRows.length} miembros del cuerpo técnico importados`,
-          description: errors.length ? `${errors.length} filas con errores` : undefined,
-          variant: errors.length ? "destructive" : undefined,
-        });
-        refetch();
-        refetchStaff();
+        setCsvLastErrors(errors);
+
+        if (duplicateRows.length === 0) {
+          // No duplicates found — keep prior behavior, insert everything immediately
+          await insertCsvRows(newRows, []);
+          setCsvErrors(errors);
+          toast({
+            title: `${newRows.filter(r=>r.kind==="player").length} jugadores y ${newRows.filter(r=>r.kind==="staff").length} miembros del cuerpo técnico importados`,
+            description: errors.length ? `${errors.length} filas con errores` : undefined,
+            variant: errors.length ? "destructive" : undefined,
+          });
+          refetch();
+          refetchStaff();
+        } else {
+          // Duplicates found — pause and let the user choose what to do
+          setCsvPendingNew(newRows);
+          setCsvPendingDuplicates(duplicateRows);
+          setCsvDuplicatesOpen(true);
+        }
       } finally {
         setCsvBusy(false);
       }
     };
     reader.readAsText(file);
+  };
+
+  const insertCsvRows = async (newRows: any[], overwriteRows: any[]) => {
+    const errors: string[] = [];
+    const newPlayers = newRows.filter((r) => r.kind === "player").map((r) => ({
+      team_id: r.team_id, first_name: r.first_name, last_name: r.last_name,
+      name: r.name, jersey_number: r.jersey_number, position: r.position,
+    }));
+    const newStaff = newRows.filter((r) => r.kind === "staff").map((r) => ({
+      team_id: r.team_id, first_name: r.first_name, last_name: r.last_name, role: r.role,
+    }));
+    if (newPlayers.length > 0) {
+      const { error } = await supabase.from("players").insert(newPlayers);
+      if (error) errors.push(`Jugadores nuevos: ${error.message}`);
+    }
+    if (newStaff.length > 0) {
+      const { error } = await supabase.from("team_staff").insert(newStaff);
+      if (error) errors.push(`Cuerpo técnico nuevo: ${error.message}`);
+    }
+    for (const r of overwriteRows) {
+      if (r.kind === "player") {
+        const { error } = await supabase.from("players").update({
+          jersey_number: r.jersey_number, position: r.position, name: r.name,
+        }).eq("id", r.existingId);
+        if (error) errors.push(`Actualizar ${r.first_name} ${r.last_name}: ${error.message}`);
+      } else {
+        const { error } = await supabase.from("team_staff").update({
+          role: r.role,
+        }).eq("id", r.existingId);
+        if (error) errors.push(`Actualizar ${r.first_name} ${r.last_name}: ${error.message}`);
+      }
+    }
+    return errors;
+  };
+
+  const resolveCsvImport = async (action: "omitir" | "sobrescribir" | "cancelar") => {
+    setCsvDuplicatesOpen(false);
+    if (action === "cancelar") {
+      setCsvPendingNew([]);
+      setCsvPendingDuplicates([]);
+      toast({ title: "Importación cancelada", description: "No se insertó ni modificó ningún registro" });
+      return;
+    }
+    setCsvBusy(true);
+    try {
+      const overwriteRows = action === "sobrescribir" ? csvPendingDuplicates : [];
+      const insertErrors = await insertCsvRows(csvPendingNew, overwriteRows);
+      const allErrors = [...csvLastErrors, ...insertErrors];
+      setCsvErrors(allErrors);
+      const insertedCount = csvPendingNew.length;
+      const updatedCount = action === "sobrescribir" ? csvPendingDuplicates.length : 0;
+      const skippedCount = action === "omitir" ? csvPendingDuplicates.length : 0;
+      toast({
+        title: `${insertedCount} nuevos${updatedCount ? `, ${updatedCount} actualizados` : ""}${skippedCount ? `, ${skippedCount} omitidos` : ""}`,
+        description: allErrors.length ? `${allErrors.length} filas con errores` : undefined,
+        variant: allErrors.length ? "destructive" : undefined,
+      });
+      refetch();
+      refetchStaff();
+    } finally {
+      setCsvBusy(false);
+      setCsvPendingNew([]);
+      setCsvPendingDuplicates([]);
+    }
   };
 
   const handleAdd = async () => {
@@ -426,6 +526,35 @@ export default function AdminPlantillas() {
               ))}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={csvDuplicatesOpen} onOpenChange={(o) => { if (!o) resolveCsvImport("cancelar"); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Se encontraron registros duplicados</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {csvPendingNew.length} fila(s) nueva(s) se insertarán sin problema.
+            {" "}Se encontraron <strong>{csvPendingDuplicates.length}</strong> fila(s) que ya existen
+            (mismo nombre, apellido y equipo). Elige qué hacer con ellas:
+          </p>
+          <div className="max-h-56 overflow-y-auto rounded-md border p-3 space-y-1">
+            {csvPendingDuplicates.map((r, i) => (
+              <p key={i} className="text-xs">
+                Fila {r.line}: <strong>{r.first_name} {r.last_name}</strong> — {r.teamName}
+              </p>
+            ))}
+          </div>
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <Button onClick={() => resolveCsvImport("sobrescribir")} disabled={csvBusy}>
+              Sobrescribir duplicados (actualiza dorsal/posición/rol con los datos del CSV)
+            </Button>
+            <Button variant="secondary" onClick={() => resolveCsvImport("omitir")} disabled={csvBusy}>
+              Omitir duplicados (solo inserta los nuevos)
+            </Button>
+            <Button variant="ghost" onClick={() => resolveCsvImport("cancelar")} disabled={csvBusy}>
+              Cancelar (no insertar ni modificar nada)
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
