@@ -33,8 +33,8 @@ const statusColors: Record<string, string> = {
 const stageLabels: Record<string, string> = {
   P1A: "Playoff 1A",
   P1B: "Playoff 1B",
-  SEMI: "Semifinal",
-  P2: "Playoff 2",
+  SEMI: "Semifinal 1",
+  P2: "Semifinal 2",
   THIRD: "3ro / 4to",
   FINAL: "Final",
 };
