@@ -16,13 +16,8 @@ import TeamDetail from "./pages/TeamDetail";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminMatchManage from "./pages/AdminMatchManage";
-import Skills from "./pages/Skills";
-import SkillsLogin from "./pages/SkillsLogin";
-import SkillsStaff from "./pages/SkillsStaff";
 import Editions from "./pages/Editions";
 import Statistics from "./pages/Statistics";
-import FairPlay from "./pages/FairPlay";
-import Podio from "./pages/Podio";
 import AdminPlantillas from "./pages/AdminPlantillas";
 import AdminApariencia from "./pages/AdminApariencia";
 import AdminReconocimientos from "./pages/AdminReconocimientos";
@@ -76,8 +71,6 @@ const App = () => {
             <Route path="/standings" element={<Standings />} />
             <Route path="/players" element={<Players />} />
             <Route path="/estadisticas" element={<Statistics />} />
-            <Route path="/fairplay" element={<FairPlay />} />
-            <Route path="/podio" element={<Podio />} />
             <Route path="/editions" element={<Editions />} />
             <Route path="/match/:id" element={<MatchDetail />} />
             <Route path="/team/:slug" element={<TeamDetail />} />
@@ -91,13 +84,6 @@ const App = () => {
           <Route path="/admin/apariencia" element={<AdminApariencia />} />
           <Route path="/admin/reconocimientos" element={<AdminReconocimientos />} />
           <Route path="/admin/patrocinadores" element={<AdminPatrocinadores />} />
-
-          {/* Skills routes */}
-          <Route element={<PublicLayout />}>
-            <Route path="/skills" element={<Skills />} />
-          </Route>
-          <Route path="/skills/login" element={<SkillsLogin />} />
-          <Route path="/skills/staff" element={<SkillsStaff />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
