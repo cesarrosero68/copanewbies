@@ -63,18 +63,6 @@ export default function Home() {
   const heroLogo = viewedTournament?.hero_logo_url || "/lovable-uploads/192672d5-a8d2-4226-8ce6-29a76b5d1b2e.png";
   const subtitleYear = viewedTournament?.year ?? "";
   const subtitleSemester = viewedTournament?.semester ?? "";
-  const { data: standings } = useQuery({
-    queryKey: ["standings", tournamentId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("standings_aggregate")
-        .select("*, team:teams(*)")
-        .eq("tournament_id", tournamentId)
-        .order("rank", { ascending: true });
-      return data || [];
-    },
-  });
-
   const { data: homeTeams } = useQuery({
     queryKey: ["home-teams", viewedTournament?.id],
     queryFn: async () => {
@@ -87,6 +75,38 @@ export default function Home() {
       return data || [];
     },
     enabled: !!viewedTournament?.id,
+  });
+
+  const { data: standings } = useQuery({
+    queryKey: ["standings", tournamentId, homeTeams?.map((t: any) => t.id).join(",")],
+    queryFn: async () => {
+      // Partimos de los equipos reales (homeTeams) y completamos con
+      // standings_aggregate cuando exista fila; así siempre se ven los
+      // equipos en cero en vez de nada, aunque no se haya jugado todavía.
+      const { data: agg } = await supabase
+        .from("standings_aggregate")
+        .select("*")
+        .eq("tournament_id", tournamentId);
+      const aggByTeam = new Map<string, any>((agg || []).map((a: any) => [a.team_id, a]));
+      const rows = (homeTeams || []).map((t: any) => {
+        const a = aggByTeam.get(t.id);
+        return {
+          team_id: t.id,
+          team: t,
+          played: a?.played ?? 0,
+          wins: a?.wins ?? 0,
+          draws: a?.draws ?? 0,
+          losses: a?.losses ?? 0,
+          gf: a?.gf ?? 0,
+          gc: a?.gc ?? 0,
+          gd: a?.gd ?? 0,
+          points: a?.points ?? 0,
+        };
+      });
+      rows.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.name.localeCompare(b.team.name));
+      return rows;
+    },
+    enabled: !!homeTeams,
   });
 
   const { data: upcomingMatches } = useQuery({
@@ -366,9 +386,9 @@ export default function Home() {
                           {s.team?.name}
                         </Link>
                       </td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.played}</td>
-                      <td className="p-3 text-center font-bold">{IS_PRESEASON ? 0 : s.points}</td>
-                      <td className="p-3 text-center">{IS_PRESEASON ? 0 : s.gd > 0 ? `+${s.gd}` : s.gd}</td>
+                      <td className="p-3 text-center">{s.played}</td>
+                      <td className="p-3 text-center font-bold">{s.points}</td>
+                      <td className="p-3 text-center">{s.gd > 0 ? `+${s.gd}` : s.gd}</td>
                     </tr>
                   ))}
                 </tbody>
