@@ -316,12 +316,12 @@ export default function Home() {
                   )}
                   {match.venue && (
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`}
+                      href={match.venue_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+                      className="mt-1 flex items-center justify-center gap-1.5 text-sm text-primary hover:underline font-medium"
                     >
-                      <MapPin className="w-3 h-3" /> {match.venue}
+                      <MapPin className="w-4 h-4" /> {match.venue}
                     </a>
                   )}
                   <Badge className="mx-auto mt-1 block w-fit text-xs" variant="secondary">
