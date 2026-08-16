@@ -23,6 +23,7 @@ export interface TournamentEdition {
   font_family: string | null;
   font_size: string | null;
   hero_color: string | null;
+  sponsors_enabled: boolean | null;
 }
 
 interface TournamentContextValue {
@@ -52,7 +53,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size,hero_color")
+      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size,hero_color,sponsors_enabled")
       .order("year", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     setTournaments((data ?? []) as unknown as TournamentEdition[]);
