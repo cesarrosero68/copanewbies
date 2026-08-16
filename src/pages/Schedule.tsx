@@ -167,21 +167,6 @@ function MatchCard({
               {match.so_played ? "Gana en Penales (SO)" : "Gana en OT"}
             </p>
           )}
-
-          {match.venue && (
-            <span
-              role="link"
-              tabIndex={0}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`, "_blank", "noopener,noreferrer");
-              }}
-              className="mt-2 flex items-center justify-center gap-1 text-xs text-primary hover:underline cursor-pointer"
-            >
-              <MapPin className="w-3 h-3" /> {match.venue}
-            </span>
-          )}
         </CardContent>
       </Card>
     </Link>
@@ -282,19 +267,89 @@ export default function Schedule() {
             </Select>
           </div>
 
-          <div className="space-y-3">
-            {matches?.map((match: any) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
+          <div className="space-y-6">
+            {(() => {
+              // Agrupar partidos por jornada (campo notes: "Jornada N"), preservando
+              // el orden de aparición. Cada grupo muestra un encabezado con la sede
+              // y fecha una sola vez, en vez de repetirla en cada tarjeta.
+              const groups: { key: string; label: string; venue: string | null; date: string | null; items: any[] }[] = [];
+              const groupIndex: Record<string, number> = {};
+              (matches || []).forEach((m: any) => {
+                const key = m.notes || "Sin jornada";
+                if (!(key in groupIndex)) {
+                  groupIndex[key] = groups.length;
+                  groups.push({
+                    key,
+                    label: key,
+                    venue: m.venue || null,
+                    date: m.start_time ? format(toBogotaDate(m.start_time), "EEEE d 'de' MMMM yyyy", { locale: es }) : null,
+                    items: [],
+                  });
+                }
+                groups[groupIndex[key]].items.push(m);
+              });
+              return groups.map((g) => (
+                <div key={g.key}>
+                  <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
+                    <h3 className="font-display text-base font-bold uppercase">{g.label}</h3>
+                    {g.date && <span className="text-xs text-muted-foreground capitalize">· {g.date}</span>}
+                    {g.venue && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.venue)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <MapPin className="w-3 h-3" /> {g.venue}
+                      </a>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {g.items.map((match: any) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </TabsContent>
 
         <TabsContent value="playoffs">
           <div className="space-y-3">
             {playoffMatches && playoffMatches.length > 0 ? (
-              playoffMatches.map((match: any) => (
-                <MatchCard key={match.id} match={match} showStage />
-              ))
+              (() => {
+                const first = playoffMatches[0];
+                const venue = first?.venue || null;
+                const date = first?.start_time
+                  ? format(toBogotaDate(first.start_time), "EEEE d 'de' MMMM yyyy", { locale: es })
+                  : null;
+                return (
+                  <div>
+                    {(venue || date) && (
+                      <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
+                        <h3 className="font-display text-base font-bold uppercase">Playoffs</h3>
+                        {date && <span className="text-xs text-muted-foreground capitalize">· {date}</span>}
+                        {venue && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <MapPin className="w-3 h-3" /> {venue}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    <div className="space-y-3">
+                      {playoffMatches.map((match: any) => (
+                        <MatchCard key={match.id} match={match} showStage />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               <p className="text-muted-foreground text-center py-8">No hay partidos de playoffs programados aún.</p>
             )}
