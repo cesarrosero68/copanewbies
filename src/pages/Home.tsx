@@ -227,8 +227,8 @@ export default function Home() {
       {homeTeams && homeTeams.length > 0 && (
         <section className="flex flex-wrap justify-center gap-x-10 gap-y-6">
           {homeTeams.map((team: any) => (
-            <div key={team.id} className="flex flex-col items-center gap-2 w-20">
-              <TeamLogo team={team} size={64} />
+            <div key={team.id} className="flex flex-col items-center gap-2 w-28">
+              <TeamLogo team={team} size={96} />
               <span className="text-xs font-medium text-center leading-tight">{team.name}</span>
             </div>
           ))}
