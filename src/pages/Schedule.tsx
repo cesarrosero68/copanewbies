@@ -272,7 +272,7 @@ export default function Schedule() {
               // Agrupar partidos por jornada (campo notes: "Jornada N"), preservando
               // el orden de aparición. Cada grupo muestra un encabezado con la sede
               // y fecha una sola vez, en vez de repetirla en cada tarjeta.
-              const groups: { key: string; label: string; venue: string | null; date: string | null; items: any[] }[] = [];
+              const groups: { key: string; label: string; venue: string | null; venueUrl: string | null; date: string | null; items: any[] }[] = [];
               const groupIndex: Record<string, number> = {};
               (matches || []).forEach((m: any) => {
                 const key = m.notes || "Sin jornada";
@@ -282,6 +282,7 @@ export default function Schedule() {
                     key,
                     label: key,
                     venue: m.venue || null,
+                    venueUrl: m.venue_maps_url || null,
                     date: m.start_time ? format(toBogotaDate(m.start_time), "EEEE d 'de' MMMM yyyy", { locale: es }) : null,
                     items: [],
                   });
@@ -295,12 +296,12 @@ export default function Schedule() {
                     {g.date && <span className="text-xs text-muted-foreground capitalize">· {g.date}</span>}
                     {g.venue && (
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.venue)}`}
+                        href={g.venueUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.venue)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                        className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
                       >
-                        <MapPin className="w-3 h-3" /> {g.venue}
+                        <MapPin className="w-4 h-4" /> {g.venue}
                       </a>
                     )}
                   </div>
@@ -321,6 +322,7 @@ export default function Schedule() {
               (() => {
                 const first = playoffMatches[0];
                 const venue = first?.venue || null;
+                const venueUrl = first?.venue_maps_url || null;
                 const date = first?.start_time
                   ? format(toBogotaDate(first.start_time), "EEEE d 'de' MMMM yyyy", { locale: es })
                   : null;
@@ -332,12 +334,12 @@ export default function Schedule() {
                         {date && <span className="text-xs text-muted-foreground capitalize">· {date}</span>}
                         {venue && (
                           <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`}
+                            href={venueUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-xs text-primary hover:underline"
+                            className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
                           >
-                            <MapPin className="w-3 h-3" /> {venue}
+                            <MapPin className="w-4 h-4" /> {venue}
                           </a>
                         )}
                       </div>
