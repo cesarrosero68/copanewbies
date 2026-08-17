@@ -91,13 +91,15 @@ export type Database = {
       }
       matches: {
         Row: {
-          away_team_id: string
+          away_team_id: string | null
+          away_team_label: string | null
           clock_enabled: boolean | null
           clock_offset_ms: number | null
           clock_started_at: string | null
           created_at: string
           current_period: number | null
-          home_team_id: string
+          home_team_id: string | null
+          home_team_label: string | null
           id: string
           match_number: number | null
           notes: string | null
@@ -114,16 +116,19 @@ export type Database = {
           tournament_id: string
           updated_at: string
           venue: string | null
+          venue_maps_url: string | null
           winner_team_id: string | null
         }
         Insert: {
-          away_team_id: string
+          away_team_id?: string | null
+          away_team_label?: string | null
           clock_enabled?: boolean | null
           clock_offset_ms?: number | null
           clock_started_at?: string | null
           created_at?: string
           current_period?: number | null
-          home_team_id: string
+          home_team_id?: string | null
+          home_team_label?: string | null
           id?: string
           match_number?: number | null
           notes?: string | null
@@ -140,16 +145,19 @@ export type Database = {
           tournament_id: string
           updated_at?: string
           venue?: string | null
+          venue_maps_url?: string | null
           winner_team_id?: string | null
         }
         Update: {
-          away_team_id?: string
+          away_team_id?: string | null
+          away_team_label?: string | null
           clock_enabled?: boolean | null
           clock_offset_ms?: number | null
           clock_started_at?: string | null
           created_at?: string
           current_period?: number | null
-          home_team_id?: string
+          home_team_id?: string | null
+          home_team_label?: string | null
           id?: string
           match_number?: number | null
           notes?: string | null
@@ -166,6 +174,7 @@ export type Database = {
           tournament_id?: string
           updated_at?: string
           venue?: string | null
+          venue_maps_url?: string | null
           winner_team_id?: string | null
         }
         Relationships: [
