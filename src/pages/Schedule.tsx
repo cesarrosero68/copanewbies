@@ -10,7 +10,9 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TeamLogo from "@/components/TeamLogo";
-import { MapPin } from "lucide-react";
+import { MapPin, CalendarDays, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { useMatchClock, periodShort } from "@/lib/matchClock";
 import ActivePenalties from "@/components/ActivePenalties";
 import { useQueryClient } from "@tanstack/react-query";
@@ -175,6 +177,8 @@ function MatchCard({
 
 export default function Schedule() {
   const [teamFilter, setTeamFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const queryClient = useQueryClient();
   const { viewedTournamentId: tournamentId } = useTournament();
 
