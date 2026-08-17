@@ -243,7 +243,7 @@ export default function Schedule() {
   }, [queryClient]);
 
   return (
-    <div className="container py-8 max-w-3xl mx-auto">
+    <div className="container py-8 max-w-5xl mx-auto">
       <h1 className="font-display text-4xl font-bold uppercase mb-2">Calendario y Resultados</h1>
       <p className="text-muted-foreground mb-6">Todos los partidos del torneo</p>
 
@@ -254,31 +254,78 @@ export default function Schedule() {
         </TabsList>
 
         <TabsContent value="regular">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrar por equipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los equipos</SelectItem>
-                {teams?.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {(() => {
+            const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
+            const matchDayKeys = new Set(
+              (matches || []).filter((m: any) => m.start_time).map((m: any) => dayKey(toBogotaDate(m.start_time))),
+            );
+            const matchDays = Array.from(matchDayKeys).map((k) => {
+              const [y, mo, d] = k.split("-").map(Number);
+              return new Date(y, mo - 1, d);
+            });
+            const visibleMatches = selectedDate
+              ? (matches || []).filter(
+                  (m: any) => m.start_time && dayKey(toBogotaDate(m.start_time)) === dayKey(selectedDate),
+                )
+              : matches || [];
+            return (
+              <div className="grid gap-6 md:grid-cols-[300px_1fr] items-start">
+                <div className="space-y-4 md:sticky md:top-24">
+                  <Card>
+                    <CardContent className="p-3">
+                      <Calendar
+                        mode="single"
+                        locale={es}
+                        selected={selectedDate}
+                        month={calendarMonth}
+                        onMonthChange={setCalendarMonth}
+                        onSelect={(d) => setSelectedDate(d ?? undefined)}
+                        modifiers={{ hasMatch: matchDays }}
+                        modifiersClassNames={{
+                          hasMatch:
+                            "relative font-semibold text-primary after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-primary",
+                        }}
+                        className="p-0 pointer-events-auto"
+                      />
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          {selectedDate
+                            ? format(selectedDate, "d 'de' MMMM yyyy", { locale: es })
+                            : "Todas las fechas"}
+                        </span>
+                        {selectedDate && (
+                          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setSelectedDate(undefined)}>
+                            <X className="w-3.5 h-3.5 mr-1" /> Quitar
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <div className="space-y-6">
+                  <Select value={teamFilter} onValueChange={setTeamFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filtrar por equipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los equipos</SelectItem>
+                      {teams?.map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-6">
             {(() => {
               // Agrupar partidos por jornada (campo notes: "Jornada N"), preservando
               // el orden de aparición. Cada grupo muestra un encabezado con la sede
               // y fecha una sola vez, en vez de repetirla en cada tarjeta.
               const groups: { key: string; label: string; venue: string | null; venueUrl: string | null; date: string | null; items: any[] }[] = [];
               const groupIndex: Record<string, number> = {};
-              (matches || []).forEach((m: any) => {
+              visibleMatches.forEach((m: any) => {
                 const key = m.notes || "Sin jornada";
                 if (!(key in groupIndex)) {
                   groupIndex[key] = groups.length;
@@ -317,7 +364,13 @@ export default function Schedule() {
                 </div>
               ));
             })()}
-          </div>
+                  {visibleMatches.length === 0 && (
+                    <p className="text-muted-foreground text-center py-8">No hay partidos en esta fecha.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="playoffs">
