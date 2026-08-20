@@ -216,7 +216,7 @@ export default function AdminDashboard() {
         .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
         .eq("tournament_id", activeTournamentId)
         .in("stage", MANAGEABLE_STAGES)
-        .order("match_number");
+        .order("start_time", { ascending: true });
       return data || [];
     },
     enabled: !!session && isAdmin === true && !!activeTournamentId,
