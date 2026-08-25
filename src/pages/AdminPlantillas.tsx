@@ -25,11 +25,14 @@ export default function AdminPlantillas() {
   const [loading, setLoading] = useState(true);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [jersey, setJersey] = useState("");
-  const [position, setPosition] = useState<string>("Jugador");
+  const [position, setPosition] = useState<string>("Delantera");
   const [birth, setBirth] = useState("");
-  const [phone, setPhone] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+
+  const POSITIONS = ["Portera", "Defensa", "Delantera"];
 
   const [editing, setEditing] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
@@ -210,10 +213,12 @@ export default function AdminPlantillas() {
               normalizeName(p.first_name || "") === normalizeName(nombre) &&
               normalizeName(p.last_name || "") === normalizeName(apellido)
             );
+            const documento = (r["documento"] || "").trim();
             const row = {
               kind: "player", line, team_id: team.id, teamName: team.name,
               first_name: nombre, last_name: apellido, name: `${nombre} ${apellido}`.trim(),
-              jersey_number: dorsal, position: posicion || "Jugador",
+              jersey_number: dorsal, position: posicion || "Delantera",
+              document_number: documento || null,
             };
             if (match) {
               playerRows.push({ ...row, existingId: match.id, isDuplicate: true });
@@ -258,6 +263,7 @@ export default function AdminPlantillas() {
     const newPlayers = newRows.filter((r) => r.kind === "player").map((r) => ({
       team_id: r.team_id, first_name: r.first_name, last_name: r.last_name,
       name: r.name, jersey_number: r.jersey_number, position: r.position,
+      document_number: r.document_number || null,
     }));
     const newStaff = newRows.filter((r) => r.kind === "staff").map((r) => ({
       team_id: r.team_id, first_name: r.first_name, last_name: r.last_name, role: r.role,
@@ -274,6 +280,7 @@ export default function AdminPlantillas() {
       if (r.kind === "player") {
         const { error } = await supabase.from("players").update({
           jersey_number: r.jersey_number, position: r.position, name: r.name,
+          document_number: r.document_number || null,
         }).eq("id", r.existingId);
         if (error) errors.push(`Actualizar ${r.first_name} ${r.last_name}: ${error.message}`);
       } else {
@@ -318,26 +325,39 @@ export default function AdminPlantillas() {
   };
 
   const handleAdd = async () => {
-    if (!name.trim() || !jersey.trim() || !selectedTeamId) {
-      toast({ title: "Faltan datos", description: "Nombre y dorsal son obligatorios", variant: "destructive" });
+    if (!firstName.trim() || !lastName.trim() || !jersey.trim() || !selectedTeamId) {
+      toast({ title: "Faltan datos", description: "Nombre, apellido y dorsal son obligatorios", variant: "destructive" });
       return;
     }
-    const payload: any = { name: name.trim(), jersey_number: parseInt(jersey), position, team_id: selectedTeamId };
+    const payload: any = {
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      jersey_number: parseInt(jersey),
+      position,
+      team_id: selectedTeamId,
+    };
     if (birth) payload.birth_date = birth;
-    if (phone) payload.phone = phone;
+    if (documentNumber) payload.document_number = documentNumber.trim();
     const { error } = await supabase.from("players").insert(payload);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Jugador agregado" });
-    setName(""); setJersey(""); setBirth(""); setPhone("");
+    setFirstName(""); setLastName(""); setJersey(""); setBirth(""); setDocumentNumber("");
     refetch();
   };
 
   const handleUpdate = async () => {
     if (!editing) return;
+    const firstName = (editing.first_name || "").trim();
+    const lastName = (editing.last_name || "").trim();
     const { error } = await supabase.from("players").update({
-      name: editing.name,
+      first_name: firstName,
+      last_name: lastName,
+      name: `${firstName} ${lastName}`.trim(),
       jersey_number: parseInt(editing.jersey_number),
       position: editing.position,
+      birth_date: editing.birth_date || null,
+      document_number: editing.document_number || null,
     }).eq("id", editing.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Jugador actualizado" });
@@ -365,7 +385,7 @@ export default function AdminPlantillas() {
       const toInsert = rows.map((r) => ({
         name: r.name || r.Nombre || r.nombre || "",
         jersey_number: parseInt(r.jersey_number || r.dorsal || r["#"] || "0"),
-        position: r.position || r.posicion || "Jugador",
+        position: r.position || r.posicion || "Delantera",
         team_id: selectedTeamId,
       })).filter((r) => r.name && r.jersey_number);
       if (toInsert.length === 0) { toast({ title: "Sin datos válidos", variant: "destructive" }); return; }
@@ -435,20 +455,22 @@ export default function AdminPlantillas() {
 
           <Card>
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-              <div className="md:col-span-2"><Label>Nombre *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+              <div><Label>Nombre *</Label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div>
+              <div><Label>Apellido *</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
               <div><Label>Dorsal *</Label><Input type="number" min={1} max={99} value={jersey} onChange={(e) => setJersey(e.target.value)} /></div>
               <div>
                 <Label>Posición</Label>
                 <Select value={position} onValueChange={setPosition}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Jugador">Jugador</SelectItem>
-                    <SelectItem value="Arquera">Arquera</SelectItem>
+                    {POSITIONS.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div><Label>Nacimiento</Label><Input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} /></div>
-              <div><Label>Teléfono</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+              <div><Label>Documento</Label><Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} /></div>
               <div className="md:col-span-6">
                 <Button onClick={handleAdd}><Plus className="w-4 h-4 mr-1" /> Agregar jugador</Button>
               </div>
@@ -462,7 +484,9 @@ export default function AdminPlantillas() {
                   <div className="w-10 h-10 rounded bg-muted flex items-center justify-center font-mono font-bold">{p.jersey_number}</div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{p.position || "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.position || "—"}{p.document_number ? ` · Doc: ${p.document_number}` : ""}
+                    </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setEditing({ ...p })}><Pencil className="w-4 h-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(p)}><Trash2 className="w-4 h-4" /></Button>
@@ -514,9 +538,9 @@ export default function AdminPlantillas() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Importar CSV (jugadores y cuerpo técnico)</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Columnas: <code>nombre, apellido, dorsal, equipo, posicion</code>. Si la posición es
-            {" "}<code>entrenador</code>, <code>asistente</code> o <code>delegado</code>, la fila se registra en el
-            cuerpo técnico. Los equipos se buscan solo dentro de la edición activa.
+            Columnas: <code>nombre, apellido, dorsal, equipo, posicion</code>, y opcionalmente <code>documento</code>.
+            Si la posición es {" "}<code>entrenador</code>, <code>asistente</code> o <code>delegado</code>, la fila se
+            registra en el cuerpo técnico (sin dorsal ni documento). Los equipos se buscan solo dentro de la edición activa.
           </p>
           <input type="file" accept=".csv,text/csv" onChange={handleCsvImport} disabled={csvBusy} className="text-sm" />
           {csvErrors.length > 0 && (
@@ -564,19 +588,27 @@ export default function AdminPlantillas() {
           <DialogHeader><DialogTitle>Editar jugador</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-3">
-              <div><Label>Nombre</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Nombre</Label><Input value={editing.first_name || ""} onChange={(e) => setEditing({ ...editing, first_name: e.target.value })} /></div>
+                <div><Label>Apellido</Label><Input value={editing.last_name || ""} onChange={(e) => setEditing({ ...editing, last_name: e.target.value })} /></div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Dorsal</Label><Input type="number" value={editing.jersey_number} onChange={(e) => setEditing({ ...editing, jersey_number: e.target.value })} /></div>
                 <div>
                   <Label>Posición</Label>
-                  <Select value={editing.position || "Jugador"} onValueChange={(v) => setEditing({ ...editing, position: v })}>
+                  <Select value={editing.position || "Delantera"} onValueChange={(v) => setEditing({ ...editing, position: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Jugador">Jugador</SelectItem>
-                      <SelectItem value="Arquera">Arquera</SelectItem>
+                      {POSITIONS.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Nacimiento</Label><Input type="date" value={editing.birth_date || ""} onChange={(e) => setEditing({ ...editing, birth_date: e.target.value })} /></div>
+                <div><Label>Documento</Label><Input value={editing.document_number || ""} onChange={(e) => setEditing({ ...editing, document_number: e.target.value })} /></div>
               </div>
             </div>
           )}
