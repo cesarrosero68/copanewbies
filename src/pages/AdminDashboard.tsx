@@ -326,19 +326,25 @@ export default function AdminDashboard() {
 
       const rostersSheet = [
         ...(playersRes.data || []).map((p: any) => ({
+          id: p.id,
           equipo: p.team?.name || "",
           nombre: p.first_name || p.name || "",
           apellido: p.last_name || "",
           dorsal: p.jersey_number,
           posicion: p.position || "",
+          "fecha de nacimiento": p.birth_date || "",
+          documento: p.document_number || "",
           capitan: p.is_captain ? "SI" : "",
         })),
         ...(staffRes.data || []).map((s: any) => ({
+          id: s.id,
           equipo: s.team?.name || "",
           nombre: s.first_name,
           apellido: s.last_name,
           dorsal: "",
           posicion: s.role || "",
+          "fecha de nacimiento": "",
+          documento: "",
           capitan: "",
         })),
       ];
