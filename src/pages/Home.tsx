@@ -244,8 +244,8 @@ export default function Home() {
           color: "hsl(var(--hero-foreground, 0 0% 100%))",
         }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-          <div className="text-center md:text-left md:col-span-3">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <div className="text-center md:text-left">
             <span
               className="inline-block text-xs font-medium px-3 py-1 rounded-full border mb-3"
               style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.4)" }}
@@ -312,7 +312,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="flex justify-center md:justify-end md:col-span-2">
+          <div className="flex justify-center md:justify-end">
             <img alt={fullName} className="h-64 md:h-80 lg:h-96 object-contain drop-shadow-lg" src={heroLogo} />
           </div>
         </div>
