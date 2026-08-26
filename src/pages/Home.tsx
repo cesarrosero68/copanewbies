@@ -57,9 +57,9 @@ export default function Home() {
   const withEdition = (path: string) =>
     isReadOnly && viewedTournament ? `${path}?edition=${viewedTournament.id}` : path;
   const fullName = viewedTournament?.name ?? "Copa Newbies III";
-  const nameParts = fullName.trim().split(/\s+/);
-  const nameSuffix = nameParts.length > 1 ? nameParts.pop()! : "";
-  const namePrefix = nameParts.join(" ");
+  const nameWords = fullName.trim().split(/\s+/);
+  const nameSuffix = nameWords.length > 1 ? nameWords.pop()! : "";
+  const nameLines = nameWords; // every word before the suffix, one per line
   const heroLogo = viewedTournament?.hero_logo_url || "/lovable-uploads/192672d5-a8d2-4226-8ce6-29a76b5d1b2e.png";
   const subtitleYear = viewedTournament?.year ?? "";
   const subtitleSemester = viewedTournament?.semester ?? "";
@@ -238,7 +238,7 @@ export default function Home() {
     <div className="container py-8 space-y-8">
       {/* Hero */}
       <section
-        className="py-10 md:py-14 px-6 md:px-10 rounded-xl relative overflow-hidden"
+        className="py-16 md:py-24 px-6 md:px-12 rounded-xl relative overflow-hidden"
         style={{
           background: "linear-gradient(135deg, var(--hero-bg, hsl(var(--secondary))) 0%, var(--hero-gradient-to, var(--hero-bg, hsl(var(--secondary)))) 100%)",
           color: "hsl(var(--hero-foreground, 0 0% 100%))",
@@ -254,12 +254,15 @@ export default function Home() {
               {totalTeams > 0 ? ` · ${totalTeams} EQUIPOS` : ""}
             </span>
             <h1
-              className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider leading-tight"
+              className="font-display text-5xl md:text-6xl lg:text-7xl font-bold uppercase tracking-wider leading-[1.05]"
               style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}
             >
-              {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
+              {nameLines.map((word, i) => (
+                <span key={i} className="block">{word}</span>
+              ))}
+              {nameSuffix && <span className="block text-primary">{nameSuffix}</span>}
             </h1>
-            <p className="mt-3 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
+            <p className="mt-5 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
               Temporada {subtitleYear}
               {subtitleSemester ? ` • ${subtitleSemester}` : ""}
             </p>
@@ -306,7 +309,7 @@ export default function Home() {
           </div>
 
           <div className="flex justify-center md:justify-end">
-            <img alt={fullName} className="h-48 md:h-64 object-contain drop-shadow-lg" src={heroLogo} />
+            <img alt={fullName} className="h-64 md:h-80 lg:h-96 object-contain drop-shadow-lg" src={heroLogo} />
           </div>
         </div>
       </section>
