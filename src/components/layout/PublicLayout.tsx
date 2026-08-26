@@ -33,7 +33,7 @@ const moreLinks = [
 export default function PublicLayout() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
-  const { isReadOnly, currentTournament, viewedTournament, clearEdition } = useTournament();
+  const { isReadOnly, currentTournament, viewedTournament, clearEdition, loading } = useTournament();
   const fullName = viewedTournament?.name ?? "Copa Newbies III";
   const nameParts = fullName.trim().split(/\s+/);
   const nameSuffix = nameParts.length > 1 ? nameParts.pop()! : "";
@@ -41,6 +41,19 @@ export default function PublicLayout() {
   const headerLogo = viewedTournament?.hero_logo_url || "/lovable-uploads/51c394b7-5ebc-4efb-aa3a-db5798c04ef0.png";
   const withEdition = (path: string) =>
     isReadOnly && currentTournament ? `${path}?edition=${currentTournament.id}` : path;
+
+  // Wait for the edition + its saved appearance (colors, gradient, logo) to
+  // load before rendering anything. Without this, the page briefly renders
+  // with the hardcoded default theme (pink accent, no hero gradient) and
+  // the fallback tournament's stats, then flashes to the real values a
+  // moment later once the tournaments query resolves.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-sm text-muted-foreground">Cargando…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
