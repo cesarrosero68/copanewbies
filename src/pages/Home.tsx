@@ -244,8 +244,8 @@ export default function Home() {
           color: "hsl(var(--hero-foreground, 0 0% 100%))",
         }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div className="text-center md:text-left">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
+          <div className="text-center md:text-left md:col-span-3">
             <span
               className="inline-block text-xs font-medium px-3 py-1 rounded-full border mb-4"
               style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.4)" }}
@@ -254,23 +254,27 @@ export default function Home() {
               {totalTeams > 0 ? ` · ${totalTeams} EQUIPOS` : ""}
             </span>
             <h1
-              className="font-display text-5xl md:text-6xl lg:text-7xl font-bold uppercase tracking-wider leading-[1.05]"
+              className="font-display text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider leading-[0.95]"
               style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}
             >
               {nameLines.map((word, i) => (
                 <span key={i} className="block">{word}</span>
               ))}
-              {nameSuffix && <span className="block text-primary">{nameSuffix}</span>}
+              {nameSuffix && (
+                <span className="block" style={{ color: "#C8102E" }}>
+                  {nameSuffix}
+                </span>
+              )}
             </h1>
-            <p className="mt-5 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
+            <p className="mt-3 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
               Temporada {subtitleYear}
               {subtitleSemester ? ` • ${subtitleSemester}` : ""}
             </p>
 
-            <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
+            <div className="mt-7 flex flex-wrap justify-center md:justify-start gap-3">
               <Link to={withEdition("/schedule")}>
                 <button
-                  className="px-5 py-2.5 rounded-md font-medium text-sm"
+                  className="px-6 py-3 rounded-md font-medium text-base"
                   style={{ background: "hsl(var(--hero-foreground, 0 0% 100%))", color: "var(--hero-bg, #1a1a2e)" }}
                 >
                   Ver calendario
@@ -278,7 +282,7 @@ export default function Home() {
               </Link>
               <Link to={withEdition("/standings")}>
                 <button
-                  className="px-5 py-2.5 rounded-md font-medium text-sm border"
+                  className="px-6 py-3 rounded-md font-medium text-base border"
                   style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%))", color: "hsl(var(--hero-foreground, 0 0% 100%))" }}
                 >
                   Tabla en vivo
@@ -287,7 +291,7 @@ export default function Home() {
             </div>
 
             {(totalTeams > 0 || totalMatches > 0 || totalMatchDays > 0) && (
-              <div className="mt-6 flex justify-center md:justify-start gap-3">
+              <div className="mt-7 flex justify-center md:justify-start gap-4">
                 {[
                   { label: "Equipos", value: totalTeams },
                   { label: "Partidos", value: totalMatches },
@@ -297,18 +301,18 @@ export default function Home() {
                   .map((s) => (
                     <div
                       key={s.label}
-                      className="rounded-lg px-4 py-2 border"
+                      className="rounded-lg px-5 py-3 border"
                       style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.25)", background: "hsl(var(--hero-foreground, 0 0% 100%) / 0.08)" }}
                     >
-                      <div className="text-[10px] uppercase tracking-wide opacity-70">{s.label}</div>
-                      <div className="text-xl font-bold">{s.value}</div>
+                      <div className="text-xs uppercase tracking-wide opacity-70">{s.label}</div>
+                      <div className="text-2xl font-bold">{s.value}</div>
                     </div>
                   ))}
               </div>
             )}
           </div>
 
-          <div className="flex justify-center md:justify-end">
+          <div className="flex justify-center md:justify-end md:col-span-2">
             <img alt={fullName} className="h-64 md:h-80 lg:h-96 object-contain drop-shadow-lg" src={heroLogo} />
           </div>
         </div>
