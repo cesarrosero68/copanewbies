@@ -238,16 +238,16 @@ export default function Home() {
     <div className="container py-8 space-y-8">
       {/* Hero */}
       <section
-        className="py-16 md:py-24 px-6 md:px-12 rounded-xl relative overflow-hidden"
+        className="py-8 md:py-10 px-6 md:px-10 rounded-xl relative overflow-hidden"
         style={{
           background: "linear-gradient(135deg, var(--hero-bg, hsl(var(--secondary))) 0%, var(--hero-gradient-to, var(--hero-bg, hsl(var(--secondary)))) 100%)",
           color: "hsl(var(--hero-foreground, 0 0% 100%))",
         }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
           <div className="text-center md:text-left md:col-span-3">
             <span
-              className="inline-block text-xs font-medium px-3 py-1 rounded-full border mb-4"
+              className="inline-block text-xs font-medium px-3 py-1 rounded-full border mb-3"
               style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.4)" }}
             >
               {fullName.match(/[IVX]+$/)?.[0] ? `${fullName.match(/[IVX]+$/)?.[0]} EDICIÓN` : "EDICIÓN ACTUAL"}
@@ -266,12 +266,12 @@ export default function Home() {
                 </span>
               )}
             </h1>
-            <p className="mt-3 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
+            <p className="mt-2 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
               Temporada {subtitleYear}
               {subtitleSemester ? ` • ${subtitleSemester}` : ""}
             </p>
 
-            <div className="mt-7 flex flex-wrap justify-center md:justify-start gap-3">
+            <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-3">
               <Link to={withEdition("/schedule")}>
                 <button
                   className="px-6 py-3 rounded-md font-medium text-base"
@@ -291,7 +291,7 @@ export default function Home() {
             </div>
 
             {(totalTeams > 0 || totalMatches > 0 || totalMatchDays > 0) && (
-              <div className="mt-7 flex justify-center md:justify-start gap-4">
+              <div className="mt-5 flex justify-center md:justify-start gap-4">
                 {[
                   { label: "Equipos", value: totalTeams },
                   { label: "Partidos", value: totalMatches },
