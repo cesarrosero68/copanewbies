@@ -125,6 +125,28 @@ export default function Home() {
     },
   });
 
+  // Lightweight query just for the hero stat cards (total matches + distinct
+  // match dates). Only fetches id/notes/start_time, not full match rows.
+  const { data: heroStatsMatches } = useQuery({
+    queryKey: ["hero-stats-matches", tournamentId],
+    queryFn: async () => {
+      if (!tournamentId) return [];
+      const { data } = await supabase
+        .from("matches")
+        .select("id, start_time")
+        .eq("tournament_id", tournamentId);
+      return data || [];
+    },
+    enabled: !!tournamentId,
+  });
+  const totalMatches = heroStatsMatches?.length ?? 0;
+  const totalMatchDays = new Set(
+    (heroStatsMatches || [])
+      .map((m: any) => (m.start_time ? m.start_time.slice(0, 10) : null))
+      .filter(Boolean),
+  ).size;
+  const totalTeams = homeTeams?.length ?? 0;
+
   const { data: playoffProgress } = useQuery({
     queryKey: ["playoff-progress", tournamentId],
     queryFn: async () => {
@@ -216,20 +238,77 @@ export default function Home() {
     <div className="container py-8 space-y-8">
       {/* Hero */}
       <section
-        className="text-center py-12 rounded-xl relative overflow-hidden"
+        className="py-10 md:py-14 px-6 md:px-10 rounded-xl relative overflow-hidden"
         style={{
           background: "linear-gradient(135deg, var(--hero-bg, hsl(var(--secondary))) 0%, var(--hero-gradient-to, var(--hero-bg, hsl(var(--secondary)))) 100%)",
           color: "hsl(var(--hero-foreground, 0 0% 100%))",
         }}
       >
-        <img alt={fullName} className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg" src={heroLogo} />
-        <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
-          {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
-        </h1>
-        <p className="mt-3 text-lg opacity-70" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
-          Temporada {subtitleYear}
-          {subtitleSemester ? ` • ${subtitleSemester}` : ""}
-        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div className="text-center md:text-left">
+            <span
+              className="inline-block text-xs font-medium px-3 py-1 rounded-full border mb-4"
+              style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.4)" }}
+            >
+              {fullName.match(/[IVX]+$/)?.[0] ? `${fullName.match(/[IVX]+$/)?.[0]} EDICIÓN` : "EDICIÓN ACTUAL"}
+              {totalTeams > 0 ? ` · ${totalTeams} EQUIPOS` : ""}
+            </span>
+            <h1
+              className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider leading-tight"
+              style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}
+            >
+              {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
+            </h1>
+            <p className="mt-3 text-lg opacity-80 max-w-md mx-auto md:mx-0" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
+              Temporada {subtitleYear}
+              {subtitleSemester ? ` • ${subtitleSemester}` : ""}
+            </p>
+
+            <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
+              <Link to={withEdition("/schedule")}>
+                <button
+                  className="px-5 py-2.5 rounded-md font-medium text-sm"
+                  style={{ background: "hsl(var(--hero-foreground, 0 0% 100%))", color: "var(--hero-bg, #1a1a2e)" }}
+                >
+                  Ver calendario
+                </button>
+              </Link>
+              <Link to={withEdition("/standings")}>
+                <button
+                  className="px-5 py-2.5 rounded-md font-medium text-sm border"
+                  style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%))", color: "hsl(var(--hero-foreground, 0 0% 100%))" }}
+                >
+                  Tabla en vivo
+                </button>
+              </Link>
+            </div>
+
+            {(totalTeams > 0 || totalMatches > 0 || totalMatchDays > 0) && (
+              <div className="mt-6 flex justify-center md:justify-start gap-3">
+                {[
+                  { label: "Equipos", value: totalTeams },
+                  { label: "Partidos", value: totalMatches },
+                  { label: "Fechas", value: totalMatchDays },
+                ]
+                  .filter((s) => s.value > 0)
+                  .map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-lg px-4 py-2 border"
+                      style={{ borderColor: "hsl(var(--hero-foreground, 0 0% 100%) / 0.25)", background: "hsl(var(--hero-foreground, 0 0% 100%) / 0.08)" }}
+                    >
+                      <div className="text-[10px] uppercase tracking-wide opacity-70">{s.label}</div>
+                      <div className="text-xl font-bold">{s.value}</div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-center md:justify-end">
+            <img alt={fullName} className="h-48 md:h-64 object-contain drop-shadow-lg" src={heroLogo} />
+          </div>
+        </div>
       </section>
 
       {/* Team Logos Strip */}
