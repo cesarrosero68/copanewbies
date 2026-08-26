@@ -601,11 +601,6 @@ export default function AdminDashboard() {
           <Button variant="outline" onClick={exportData} disabled={exporting}>
             <Download className="w-4 h-4 mr-1" /> {exporting ? "Exportando..." : "Exportar"}
           </Button>
-          <Link to="/admin/apariencia">
-            <Button variant="outline">
-              <Palette className="w-4 h-4 mr-1" /> Apariencia
-            </Button>
-          </Link>
           <Button variant="outline" onClick={() => setAppearanceOpen(true)}>
             <Palette className="w-4 h-4 mr-1" /> Apariencia de la edición
           </Button>
