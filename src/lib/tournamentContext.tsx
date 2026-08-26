@@ -23,6 +23,7 @@ export interface TournamentEdition {
   font_family: string | null;
   font_size: string | null;
   hero_color: string | null;
+  hero_gradient_to: string | null;
   sponsors_enabled: boolean | null;
 }
 
@@ -46,18 +47,19 @@ const TournamentContext = createContext<TournamentContextValue | undefined>(unde
 
 export function TournamentProvider({ children }: { children: ReactNode }) {
   const [tournaments, setTournaments] = useState<TournamentEdition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tournamentsFetched, setTournamentsFetched] = useState(false);
+  const [themeApplied, setThemeApplied] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const editionParam = searchParams.get("edition");
 
   const refresh = useCallback(async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size,hero_color,sponsors_enabled")
+      .select("id,name,year,semester,status,season,created_at,primary_color,hero_logo_url,logo_url,header_color,footer_color,bg_color,title_color,text_color,font_family,font_size,hero_color,hero_gradient_to,sponsors_enabled")
       .order("year", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
     setTournaments((data ?? []) as unknown as TournamentEdition[]);
-    setLoading(false);
+    setTournamentsFetched(true);
   }, []);
 
   useEffect(() => {
@@ -83,11 +85,18 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const isViewingActive = !currentTournament || currentTournament.id === activeTournamentId;
   const isReadOnly = !isViewingActive;
 
-  // Apply the viewed edition's full appearance theme on every switch.
+  // Apply the viewed edition's full appearance theme on every switch, and
+  // only then flip `loading` to false. Splitting this into its own effect
+  // (instead of setting loading straight from refresh()) guarantees the
+  // CSS variables are on the DOM before PublicLayout stops showing the
+  // loading gate — otherwise the page can flash the hardcoded default
+  // theme and the fallback tournament's stats for a moment.
   useEffect(() => {
-    if (!currentTournament) return;
-    applyEditionTheme(currentTournament);
+    if (!tournamentsFetched) return;
+    if (currentTournament) applyEditionTheme(currentTournament);
+    setThemeApplied(true);
   }, [
+    tournamentsFetched,
     currentTournament?.id,
     currentTournament?.primary_color,
     currentTournament?.header_color,
@@ -98,7 +107,10 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     currentTournament?.font_family,
     currentTournament?.font_size,
     currentTournament?.hero_color,
+    currentTournament?.hero_gradient_to,
   ]);
+
+  const loading = !tournamentsFetched || !themeApplied;
 
   const setEdition = useCallback(
     (id: string) => {
