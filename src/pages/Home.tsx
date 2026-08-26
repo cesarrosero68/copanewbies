@@ -216,14 +216,17 @@ export default function Home() {
     <div className="container py-8 space-y-8">
       {/* Hero */}
       <section
-        className="text-center py-12 rounded-xl bg-secondary relative overflow-hidden"
-        style={{ background: "var(--hero-bg, hsl(var(--secondary)))" }}
+        className="text-center py-12 rounded-xl relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, var(--hero-bg, hsl(var(--secondary))) 0%, var(--hero-gradient-to, var(--hero-bg, hsl(var(--secondary)))) 100%)",
+          color: "hsl(var(--hero-foreground, 0 0% 100%))",
+        }}
       >
         <img alt={fullName} className="mx-auto h-48 md:h-64 object-contain mb-4 drop-shadow-lg" src={heroLogo} />
-        <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider text-secondary-foreground">
+        <h1 className="font-display text-4xl md:text-5xl font-bold uppercase tracking-wider" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
           {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
         </h1>
-        <p className="mt-3 text-secondary-foreground/70 text-lg">
+        <p className="mt-3 text-lg opacity-70" style={{ color: "hsl(var(--hero-foreground, 0 0% 100%))" }}>
           Temporada {subtitleYear}
           {subtitleSemester ? ` • ${subtitleSemester}` : ""}
         </p>
