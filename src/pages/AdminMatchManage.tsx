@@ -514,6 +514,12 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
+  // Every time the admin switches team or period (i.e. starts loading a
+  // different goal), trust the clock again until the field is edited by hand.
+  useEffect(() => {
+    setTimeTouched(false);
+  }, [teamId, period]);
+
   // Take a snapshot of the current clock value (running or paused) once,
   // instead of ticking live inside the field — the field is a fixed value.
   useEffect(() => {
@@ -691,14 +697,30 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <Input
-                value={time}
-                onChange={(e) => {
-                  setTimeTouched(true);
-                  setTime(e.target.value);
-                }}
-                placeholder="05:30"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={time}
+                  onChange={(e) => {
+                    setTimeTouched(true);
+                    setTime(e.target.value);
+                  }}
+                  placeholder="05:30"
+                />
+                {clockEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      setTime(formatClock(elapsedMs(match)));
+                      setTimeTouched(false);
+                    }}
+                  >
+                    Usar actual
+                  </Button>
+                )}
+              </div>
               {clockEnabled && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
@@ -812,6 +834,12 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const currentPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
+
+  // Every time the admin switches team or period (i.e. starts loading a
+  // different penalty), trust the clock again until the field is edited by hand.
+  useEffect(() => {
+    setTimeTouched(false);
+  }, [teamId, period]);
 
   // Take a snapshot of the current clock value (running or paused) once,
   // instead of ticking live inside the field — the field is a fixed value.
@@ -944,14 +972,30 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <Input
-                value={time}
-                onChange={(e) => {
-                  setTimeTouched(true);
-                  setTime(e.target.value);
-                }}
-                placeholder="05:30"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={time}
+                  onChange={(e) => {
+                    setTimeTouched(true);
+                    setTime(e.target.value);
+                  }}
+                  placeholder="05:30"
+                />
+                {clockEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      setTime(formatClock(elapsedMs(match)));
+                      setTimeTouched(false);
+                    }}
+                  >
+                    Usar actual
+                  </Button>
+                )}
+              </div>
               {clockEnabled && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
