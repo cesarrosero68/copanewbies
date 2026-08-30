@@ -63,6 +63,7 @@ const PENALTY_TYPES = [
 ];
 
 const PREDEFINED_TIMES = [
+  { label: "1:00", value: "01:00" },
   { label: "1:30", value: "01:30" },
   { label: "4:00", value: "04:00" },
   { label: "10:00", value: "10:00" },
