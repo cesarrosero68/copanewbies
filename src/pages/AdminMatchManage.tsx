@@ -538,12 +538,12 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Take a snapshot of the live clock once (when untouched), instead of ticking
-  // live inside the field — the field is a fixed value, not a second clock.
+  // Take a snapshot of the current clock value (running or paused) once,
+  // instead of ticking live inside the field — the field is a fixed value.
   useEffect(() => {
-    if (!clockRunning || timeTouched) return;
+    if (!clockEnabled || timeTouched) return;
     setTime(formatClock(elapsedMs(match)));
-  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+  }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   // Keep period synced with the live period
   useEffect(() => {
@@ -705,7 +705,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
                 }}
                 placeholder="05:30"
               />
-              {clockRunning && !timeTouched && (
+              {clockEnabled && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
             </div>
@@ -819,12 +819,12 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Take a snapshot of the live clock once (when untouched), instead of ticking
-  // live inside the field — the field is a fixed value, not a second clock.
+  // Take a snapshot of the current clock value (running or paused) once,
+  // instead of ticking live inside the field — the field is a fixed value.
   useEffect(() => {
-    if (!clockRunning || timeTouched) return;
+    if (!clockEnabled || timeTouched) return;
     setTime(formatClock(elapsedMs(match)));
-  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+  }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   useEffect(() => {
     if (!clockEnabled) return;
@@ -958,7 +958,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
                 }}
                 placeholder="05:30"
               />
-              {clockRunning && !timeTouched && (
+              {clockEnabled && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
             </div>
