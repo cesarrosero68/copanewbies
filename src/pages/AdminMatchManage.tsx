@@ -524,7 +524,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   // instead of ticking live inside the field — the field is a fixed value.
   useEffect(() => {
     if (!clockEnabled || timeTouched) return;
-    setTime(formatClock(elapsedMs(match)));
+    setTime(formatClock(remainingMs(match)));
   }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   // Keep period synced with the live period
@@ -713,7 +713,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
                     size="sm"
                     className="shrink-0"
                     onClick={() => {
-                      setTime(formatClock(elapsedMs(match)));
+                      setTime(formatClock(remainingMs(match)));
                       setTimeTouched(false);
                     }}
                   >
@@ -845,7 +845,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   // instead of ticking live inside the field — the field is a fixed value.
   useEffect(() => {
     if (!clockEnabled || timeTouched) return;
-    setTime(formatClock(elapsedMs(match)));
+    setTime(formatClock(remainingMs(match)));
   }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   useEffect(() => {
@@ -988,7 +988,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
                     size="sm"
                     className="shrink-0"
                     onClick={() => {
-                      setTime(formatClock(elapsedMs(match)));
+                      setTime(formatClock(remainingMs(match)));
                       setTimeTouched(false);
                     }}
                   >
