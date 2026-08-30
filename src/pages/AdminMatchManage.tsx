@@ -265,45 +265,40 @@ function MatchClockPanel({ match, updateMatch }: any) {
 }
 
 function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
-  const [homeScore, setHomeScore] = useState(match.reg_home_score?.toString() || "0");
-  const [awayScore, setAwayScore] = useState(match.reg_away_score?.toString() || "0");
+  // reg_home_score / reg_away_score are always derived from goal_events
+  // (see GoalEventsSection.recalcScore) — this component only displays them.
   const [otPlayed, setOtPlayed] = useState(match.ot_played || false);
   const [soPlayed, setSoPlayed] = useState(match.so_played || false);
   const [winnerId, setWinnerId] = useState(match.winner_team_id || "");
 
   useEffect(() => {
-    setHomeScore(match.reg_home_score?.toString() || "0");
-    setAwayScore(match.reg_away_score?.toString() || "0");
     setOtPlayed(match.ot_played || false);
     setSoPlayed(match.so_played || false);
     setWinnerId(match.winner_team_id || "");
   }, [match]);
 
-  const saveScore = () => {
-    const parsedHomeScore = parseInt(homeScore);
-    const parsedAwayScore = parseInt(awayScore);
-    const updates: any = {
-      reg_home_score: parsedHomeScore,
-      reg_away_score: parsedAwayScore,
-    };
-    if (isPlayoff) {
-      updates.ot_played = otPlayed;
-      updates.so_played = soPlayed;
-      const resolvedWinnerId = parsedHomeScore > parsedAwayScore
-        ? match.home_team_id
-        : parsedAwayScore > parsedHomeScore
-          ? match.away_team_id
-          : winnerId;
+  const homeScore = match.reg_home_score ?? 0;
+  const awayScore = match.reg_away_score ?? 0;
 
-      if (resolvedWinnerId) {
-        updates.winner_team_id = resolvedWinnerId;
-        updates.ot_winner_team_id = otPlayed && !soPlayed ? resolvedWinnerId : null;
-        updates.so_winner_team_id = soPlayed ? resolvedWinnerId : null;
-      } else {
-        updates.winner_team_id = null;
-        updates.ot_winner_team_id = null;
-        updates.so_winner_team_id = null;
-      }
+  const savePlayoffResult = () => {
+    const resolvedWinnerId = homeScore > awayScore
+      ? match.home_team_id
+      : awayScore > homeScore
+        ? match.away_team_id
+        : winnerId;
+
+    const updates: any = {
+      ot_played: otPlayed,
+      so_played: soPlayed,
+    };
+    if (resolvedWinnerId) {
+      updates.winner_team_id = resolvedWinnerId;
+      updates.ot_winner_team_id = otPlayed && !soPlayed ? resolvedWinnerId : null;
+      updates.so_winner_team_id = soPlayed ? resolvedWinnerId : null;
+    } else {
+      updates.winner_team_id = null;
+      updates.ot_winner_team_id = null;
+      updates.so_winner_team_id = null;
     }
     updateMatch.mutate(updates);
   };
@@ -315,37 +310,20 @@ function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
           <div className="text-center flex-1">
             <TeamLogo team={match.home_team} size={48} className="mx-auto mb-2" />
             <h2 className="font-display text-lg font-bold">{match.home_team?.name}</h2>
-            {isLive && (
-              <Input
-                type="number" min={0} value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
-                className="w-20 mx-auto mt-2 text-center font-display text-2xl font-bold h-12"
-              />
-            )}
           </div>
 
           <div className="text-center">
-            {isPlayed ? (
-              <div className="font-display text-4xl font-bold">
-                {match.reg_home_score} - {match.reg_away_score}
-              </div>
-            ) : isLive ? (
-              <div className="font-display text-3xl text-muted-foreground">VS</div>
-            ) : (
-              <div className="font-display text-3xl text-muted-foreground">VS</div>
+            <div className="font-display text-4xl font-bold">
+              {homeScore} - {awayScore}
+            </div>
+            {isLive && (
+              <p className="text-xs text-muted-foreground mt-1">Se actualiza al registrar goles</p>
             )}
           </div>
 
           <div className="text-center flex-1">
             <TeamLogo team={match.away_team} size={48} className="mx-auto mb-2" />
             <h2 className="font-display text-lg font-bold">{match.away_team?.name}</h2>
-            {isLive && (
-              <Input
-                type="number" min={0} value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
-                className="w-20 mx-auto mt-2 text-center font-display text-2xl font-bold h-12"
-              />
-            )}
           </div>
         </div>
 
@@ -373,14 +351,12 @@ function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
                 </Select>
               </div>
             )}
+            <div className="flex justify-center mt-2">
+              <Button onClick={savePlayoffResult} size="sm">Guardar resultado de playoff</Button>
+            </div>
           </div>
         )}
 
-        {isLive && (
-          <div className="flex justify-center mt-4">
-            <Button onClick={saveScore} size="sm">Guardar Marcador</Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -592,6 +568,22 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const scoringTeamPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const defendingTeamPlayers = teamId === homeTeamId ? awayPlayers : homePlayers;
 
+  // Recount real goals for both teams and keep the scoreboard in sync —
+  // the score is always derived from goal_events, never typed by hand.
+  const recalcScore = async () => {
+    const { data: allGoals } = await supabase
+      .from("goal_events")
+      .select("team_id")
+      .eq("match_id", matchId);
+    const homeGoals = (allGoals || []).filter((g: any) => g.team_id === homeTeamId).length;
+    const awayGoals = (allGoals || []).filter((g: any) => g.team_id === awayTeamId).length;
+    await supabase
+      .from("matches")
+      .update({ reg_home_score: homeGoals, reg_away_score: awayGoals })
+      .eq("id", matchId);
+    queryClient.invalidateQueries({ queryKey: ["admin-match", matchId] });
+  };
+
   const addGoal = useMutation({
     mutationFn: async () => {
       if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
@@ -613,6 +605,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
       }
       const { error } = await supabase.from("goal_events").insert(insert);
       if (error) throw error;
+      await recalcScore();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
@@ -631,6 +624,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
     mutationFn: async (goalId: string) => {
       const { error } = await supabase.from("goal_events").delete().eq("id", goalId);
       if (error) throw error;
+      await recalcScore();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
