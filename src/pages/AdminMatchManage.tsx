@@ -771,8 +771,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const queryClient = useQueryClient();
   const [teamId, setTeamId] = useState(homeTeamId);
   const [period, setPeriod] = useState("1");
-  const [gameMinutes, setGameMinutes] = useState("");
-  const [gameSeconds, setGameSeconds] = useState("00");
+  const [time, setTime] = useState("");
   const [timeTouched, setTimeTouched] = useState(false);
   const [timePreset, setTimePreset] = useState("01:30");
   const [penaltyMins, setPenaltyMins] = useState("1");
@@ -823,11 +822,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
   useEffect(() => {
     if (!clockRunning || timeTouched) return;
-    const sync = () => {
-      const [m, s] = formatClock(elapsedMs(match)).split(":");
-      setGameMinutes(String(parseInt(m)));
-      setGameSeconds(s);
-    };
+    const sync = () => setTime(formatClock(elapsedMs(match)));
     sync();
     const t = setInterval(sync, 1000);
     return () => clearInterval(t);
@@ -841,10 +836,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
   const addPenalty = useMutation({
     mutationFn: async () => {
-      const gMins = parseInt(gameMinutes) || 0;
-      const gSecs = parseInt(gameSeconds) || 0;
-      const timeMmss = `${String(gMins).padStart(2, "0")}:${String(gSecs).padStart(2, "0")}`;
-      if (!isValidMmSs(timeMmss)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
+      if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
       const pMins = parseInt(penaltyMins) || 0;
       const pSecs = parseInt(penaltySecs) || 0;
       const durationMmss = `${String(pMins).padStart(2, "0")}:${String(pSecs).padStart(2, "0")}`;
@@ -853,7 +845,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
         team_id: teamId,
         player_id: playerId,
         period,
-        time_mmss: timeMmss,
+        time_mmss: time,
         penalty_type: penaltyType,
         duration_mmss: durationMmss,
       });
@@ -861,8 +853,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
-      setGameMinutes("");
-      setGameSeconds("00");
+      setTime("");
       setTimeTouched(false);
       setTimePreset("01:30");
       setPenaltyMins("1");
@@ -901,7 +892,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const canAdd = !!playerId && !!penaltyType && gameMinutes !== "";
+  const canAdd = !!playerId && !!penaltyType && time !== "";
 
   return (
     <Card>
@@ -959,15 +950,19 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Minuto del partido</Label>
-                <Input type="number" min={0} max={60} value={gameMinutes} onChange={(e) => { setTimeTouched(true); setGameMinutes(e.target.value); }} placeholder="00" />
-              </div>
-              <div>
-                <Label className="text-xs">Segundos</Label>
-                <Input type="number" min={0} max={59} value={gameSeconds} onChange={(e) => { setTimeTouched(true); setGameSeconds(e.target.value); }} placeholder="00" />
-              </div>
+            <div>
+              <Label className="text-xs">Tiempo (mm:ss)</Label>
+              <Input
+                value={time}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
+              {clockRunning && !timeTouched && (
+                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
+              )}
             </div>
 
             <div>
