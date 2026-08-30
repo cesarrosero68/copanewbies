@@ -538,12 +538,11 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Auto-fill time from the live clock while untouched
+  // Take a snapshot of the live clock once (when untouched), instead of ticking
+  // live inside the field — the field is a fixed value, not a second clock.
   useEffect(() => {
     if (!clockRunning || timeTouched) return;
     setTime(formatClock(elapsedMs(match)));
-    const t = setInterval(() => setTime(formatClock(elapsedMs(match))), 1000);
-    return () => clearInterval(t);
   }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   // Keep period synced with the live period
@@ -707,7 +706,7 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
                 placeholder="05:30"
               />
               {clockRunning && !timeTouched && (
-                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
+                <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
             </div>
 
@@ -820,12 +819,11 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
+  // Take a snapshot of the live clock once (when untouched), instead of ticking
+  // live inside the field — the field is a fixed value, not a second clock.
   useEffect(() => {
     if (!clockRunning || timeTouched) return;
-    const sync = () => setTime(formatClock(elapsedMs(match)));
-    sync();
-    const t = setInterval(sync, 1000);
-    return () => clearInterval(t);
+    setTime(formatClock(elapsedMs(match)));
   }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   useEffect(() => {
@@ -961,7 +959,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
                 placeholder="05:30"
               />
               {clockRunning && !timeTouched && (
-                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
+                <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
               )}
             </div>
 
