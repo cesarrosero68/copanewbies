@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -23,7 +24,7 @@ const teamColorMap: Record<string, string> = {
 export default function MatchDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const { viewedTournamentId: tournamentId } = useTournament();
+  const { viewedTournamentId: tournamentId, isReadOnly } = useTournament();
 
   const { data: match } = useQuery({
     queryKey: ["match", id, tournamentId],
@@ -95,6 +96,12 @@ export default function MatchDetail() {
 
   return (
     <div className="container py-8 max-w-3xl">
+      <Link
+        to={isReadOnly && tournamentId ? `/schedule?edition=${tournamentId}` : "/schedule"}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" /> Volver al calendario
+      </Link>
       {/* Scoreboard */}
       <Card className="mb-8">
         <CardContent className="p-8">
