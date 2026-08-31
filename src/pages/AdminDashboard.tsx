@@ -17,6 +17,10 @@ import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { applyEditionTheme, FONT_OPTIONS } from "@/lib/theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { toBogotaDate } from "@/lib/dateUtils";
+import TeamLogo from "@/components/TeamLogo";
 
 const MANAGEABLE_STAGES = ["REGULAR", "P1A", "P1B", "SEMI", "P2", "THIRD", "FINAL"] as const;
 
@@ -493,6 +497,25 @@ export default function AdminDashboard() {
     return (a.match_number || 0) - (b.match_number || 0);
   });
 
+  // Group into date sections (by Bogota calendar day) for display, without
+  // changing the operational ordering above (live > scheduled > final >
+  // locked) within each group — this only affects how the list is chunked
+  // visually, not which matches surface first.
+  type MatchGroup = { key: string; label: string; matches: any[] };
+  const matchGroups: MatchGroup[] = [];
+  for (const match of sortedMatches) {
+    const key = match.start_time ? toBogotaDate(match.start_time).toISOString().slice(0, 10) : "sin-fecha";
+    let group = matchGroups.find((g) => g.key === key);
+    if (!group) {
+      const label = match.start_time
+        ? format(toBogotaDate(match.start_time), "EEEE d 'de' MMMM", { locale: es })
+        : "Sin fecha";
+      group = { key, label: label.charAt(0).toUpperCase() + label.slice(1), matches: [] };
+      matchGroups.push(group);
+    }
+    group.matches.push(match);
+  }
+
   const statusLabels: Record<string, string> = {
     scheduled: "Programado",
     live: "🔴 En Juego",
@@ -612,53 +635,75 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="space-y-3">
-          {sortedMatches.map((match: any) => (
-            <Card key={match.id} className={match.status === "live" ? "border-destructive" : ""}>
-              <CardContent className="p-4">
-                <div className="flex flex-wrap items-center gap-4 justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge variant={statusColors[match.status] as any} className="text-xs">
-                      {statusLabels[match.status]}
-                    </Badge>
-                    {match.notes?.toUpperCase().includes("APLAZADO") && (
-                      <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
-                        Aplazado
-                      </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">#{match.match_number}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {stageLabels[match.stage] || match.stage}
-                    </Badge>
-                    <span className="font-medium text-sm">
-                      {match.home_team?.name} vs {match.away_team?.name}
-                    </span>
-                    {(match.status === "final" || match.status === "locked") && (
-                      <span className="font-display font-bold">
-                        {match.reg_home_score} - {match.reg_away_score}
-                      </span>
-                    )}
-                  </div>
+        <div className="space-y-6">
+          {matchGroups.map((group) => (
+            <div key={group.key}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 px-1">
+                {group.label}
+              </h3>
+              <div className="space-y-3">
+                {group.matches.map((match: any) => (
+                  <Card key={match.id} className={match.status === "live" ? "border-destructive" : ""}>
+                    <CardContent className="p-5">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={statusColors[match.status] as any} className="text-xs">
+                            {statusLabels[match.status]}
+                          </Badge>
+                          {match.notes?.toUpperCase().includes("APLAZADO") && (
+                            <Badge className="text-xs bg-amber-500 text-white border-amber-500 hover:bg-amber-600">
+                              Aplazado
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">#{match.match_number}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {stageLabels[match.stage] || match.stage}
+                          </Badge>
+                        </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => openVenueEdit(match)}>
-                      <MapPin className="w-4 h-4 mr-1" /> {match.venue || "Sede"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={match.status === "live" ? "default" : "outline"}
-                      onClick={() => navigate(`/admin/match/${match.id}`)}
-                    >
-                      {match.status === "scheduled"
-                        ? "Gestionar"
-                        : match.status === "live"
-                          ? "🔴 En Juego"
-                          : "Ver Detalle"}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                        <div className="flex items-center gap-3 flex-1 min-w-[280px] justify-center">
+                          <div className="flex items-center gap-2.5 flex-1 justify-end">
+                            <span className="font-semibold text-base text-right">
+                              {match.home_team?.name || match.home_team_label || "Por definir"}
+                            </span>
+                            <TeamLogo team={match.home_team} size={40} />
+                          </div>
+                          <span className="text-sm text-muted-foreground font-medium px-1">vs</span>
+                          <div className="flex items-center gap-2.5 flex-1">
+                            <TeamLogo team={match.away_team} size={40} />
+                            <span className="font-semibold text-base">
+                              {match.away_team?.name || match.away_team_label || "Por definir"}
+                            </span>
+                          </div>
+                          {(match.status === "final" || match.status === "locked") && (
+                            <span className="font-display font-bold text-lg ml-2 shrink-0">
+                              {match.reg_home_score} - {match.reg_away_score}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" variant="ghost" onClick={() => openVenueEdit(match)}>
+                            <MapPin className="w-4 h-4 mr-1" /> {match.venue || "Sede"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={match.status === "live" ? "default" : "outline"}
+                            onClick={() => navigate(`/admin/match/${match.id}`)}
+                          >
+                            {match.status === "scheduled"
+                              ? "Gestionar"
+                              : match.status === "live"
+                                ? "🔴 En Juego"
+                                : "Ver Detalle"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
 
