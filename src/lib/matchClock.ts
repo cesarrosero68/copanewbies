@@ -91,6 +91,22 @@ export interface PenaltyClockFields {
 }
 
 /**
+ * Normaliza un identificador de período a una clave comparable. El partido guarda
+ * current_period como número (1, 2, 3, 4...) y las sanciones guardan el período
+ * como texto ("1", "2", "OT"), donde "OT" corresponde a cualquier current_period >= 3.
+ * Sin esta normalización, "OT" nunca es igual a "3" y toda sanción del tiempo extra
+ * se trataba como si fuera de un período anterior, dañando el cálculo del contador.
+ */
+function normalizePeriodKey(period: string | number | null | undefined): string {
+  const s = String(period ?? "1").trim().toUpperCase();
+  if (s === "OT" || s === "SO") return "OT";
+  const n = parseInt(s, 10);
+  if (Number.isFinite(n) && n >= 3) return "OT";
+  if (Number.isFinite(n)) return String(n);
+  return s;
+}
+
+/**
  * Remaining penalty time in ms, or null when the penalty is over / ended early.
  * `time_mmss` is the remaining period time when the penalty was registered.
  */
@@ -103,11 +119,11 @@ export function penaltyRemainingMs(
   const durationMs = parseMmSsToMs(penalty.duration_mmss);
   if (durationMs <= 0) return null;
   const registeredRemaining = parseMmSsToMs(penalty.time_mmss);
-  const currentPeriod = String(match?.current_period ?? 1);
+  const currentPeriod = normalizePeriodKey(match?.current_period);
   const elapsed = elapsedMs(match, now);
 
   let remaining: number;
-  if (String(penalty.period) === currentPeriod) {
+  if (normalizePeriodKey(penalty.period) === currentPeriod) {
     const elapsedAtRegistration = Math.max(0, periodMs(match) - registeredRemaining);
     remaining = durationMs - Math.max(0, elapsed - elapsedAtRegistration);
   } else {
