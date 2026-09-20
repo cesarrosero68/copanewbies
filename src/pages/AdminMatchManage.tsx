@@ -840,13 +840,14 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const clockEnabled = match?.clock_enabled !== false;
 
   useEffect(() => {
-    if (!clockRunning || timeTouched) return;
+    if (timeTouched) return;
     const sync = () => {
       const [m, s] = formatClock(elapsedMs(match)).split(":");
       setGameMinutes(String(parseInt(m)));
       setGameSeconds(s);
     };
     sync();
+    if (!clockRunning) return;
     const t = setInterval(sync, 1000);
     return () => clearInterval(t);
   }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
