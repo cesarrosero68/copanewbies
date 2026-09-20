@@ -92,12 +92,28 @@ export default function AdminMatchManage() {
       const { error } = await supabase.from("matches").update(updates).eq("id", id);
       if (error) throw error;
     },
+    // Actualiza el partido en memoria de inmediato (antes de esperar la respuesta del
+    // servidor), para que el cronómetro y los formularios de goles/sanciones reflejen
+    // el pausado/reanudado en el instante exacto del clic, sin desfase de hasta 1s.
+    onMutate: async (updates: any) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-match", id] });
+      const previousMatch = queryClient.getQueryData(["admin-match", id]);
+      queryClient.setQueryData(["admin-match", id], (old: any) =>
+        old ? { ...old, ...updates } : old
+      );
+      return { previousMatch };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-match", id] });
       queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
       toast({ title: "Partido actualizado" });
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any, _updates, context: any) => {
+      if (context?.previousMatch) {
+        queryClient.setQueryData(["admin-match", id], context.previousMatch);
+      }
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
   });
 
   if (isLoading || !match) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
@@ -539,8 +555,9 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
 
   // Auto-fill time from the live clock while untouched
   useEffect(() => {
-    if (!clockRunning || timeTouched) return;
+    if (timeTouched) return;
     setTime(formatClock(elapsedMs(match)));
+    if (!clockRunning) return;
     const t = setInterval(() => setTime(formatClock(elapsedMs(match))), 1000);
     return () => clearInterval(t);
   }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
