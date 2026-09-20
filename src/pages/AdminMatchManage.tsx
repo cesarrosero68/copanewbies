@@ -234,6 +234,20 @@ function MatchClockPanel({ match, updateMatch }: any) {
           <Button
             size="sm"
             variant="outline"
+            disabled={(match.current_period ?? 1) <= 1}
+            onClick={() =>
+              updateMatch.mutate({
+                current_period: Math.max(1, (match.current_period ?? 1) - 1),
+                clock_started_at: null,
+                clock_offset_ms: 0,
+              })
+            }
+          >
+            Período anterior
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() =>
               updateMatch.mutate({
                 current_period: Math.min(3, (match.current_period ?? 1) + 1),
@@ -806,8 +820,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const queryClient = useQueryClient();
   const [teamId, setTeamId] = useState(homeTeamId);
   const [period, setPeriod] = useState("1");
-  const [gameMinutes, setGameMinutes] = useState("");
-  const [gameSeconds, setGameSeconds] = useState("00");
+  const [gameTime, setGameTime] = useState("");
   const [timeTouched, setTimeTouched] = useState(false);
   const [timePreset, setTimePreset] = useState("01:30");
   const [penaltyMins, setPenaltyMins] = useState("1");
@@ -860,14 +873,9 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   // grande), porque penaltyRemainingMs() en matchClock.ts lo interpreta así.
   useEffect(() => {
     if (timeTouched) return;
-    const sync = () => {
-      const [m, s] = formatClock(remainingMs(match)).split(":");
-      setGameMinutes(String(parseInt(m)));
-      setGameSeconds(s);
-    };
-    sync();
+    setGameTime(formatClock(remainingMs(match)));
     if (!clockRunning) return;
-    const t = setInterval(sync, 1000);
+    const t = setInterval(() => setGameTime(formatClock(remainingMs(match))), 1000);
     return () => clearInterval(t);
   }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
@@ -879,10 +887,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
   const addPenalty = useMutation({
     mutationFn: async () => {
-      const gMins = parseInt(gameMinutes) || 0;
-      const gSecs = parseInt(gameSeconds) || 0;
-      const timeMmss = `${String(gMins).padStart(2, "0")}:${String(gSecs).padStart(2, "0")}`;
-      if (!isValidMmSs(timeMmss)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
+      if (!isValidMmSs(gameTime)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
       const pMins = parseInt(penaltyMins) || 0;
       const pSecs = parseInt(penaltySecs) || 0;
       const durationMmss = `${String(pMins).padStart(2, "0")}:${String(pSecs).padStart(2, "0")}`;
@@ -891,7 +896,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
         team_id: teamId,
         player_id: playerId,
         period,
-        time_mmss: timeMmss,
+        time_mmss: gameTime.trim(),
         penalty_type: penaltyType,
         duration_mmss: durationMmss,
       });
@@ -899,8 +904,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
-      setGameMinutes("");
-      setGameSeconds("00");
+      setGameTime("");
       setTimeTouched(false);
       setTimePreset("01:30");
       setPenaltyMins("1");
@@ -939,7 +943,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const canAdd = !!playerId && !!penaltyType && gameMinutes !== "";
+  const canAdd = !!playerId && !!penaltyType && !!gameTime;
 
   return (
     <Card>
@@ -997,15 +1001,19 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Minuto del partido</Label>
-                <Input type="number" min={0} max={60} value={gameMinutes} onChange={(e) => { setTimeTouched(true); setGameMinutes(e.target.value); }} placeholder="00" />
-              </div>
-              <div>
-                <Label className="text-xs">Segundos</Label>
-                <Input type="number" min={0} max={59} value={gameSeconds} onChange={(e) => { setTimeTouched(true); setGameSeconds(e.target.value); }} placeholder="00" />
-              </div>
+            <div>
+              <Label className="text-xs">Tiempo (mm:ss)</Label>
+              <Input
+                value={gameTime}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setGameTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
+              {clockRunning && !timeTouched && (
+                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
+              )}
             </div>
 
             <div>
