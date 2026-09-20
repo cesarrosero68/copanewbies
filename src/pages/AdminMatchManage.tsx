@@ -567,6 +567,13 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
+  // Cada vez que el cronómetro cambia de estado (pausa, reanuda, cambia de período),
+  // se vuelve a sincronizar el campo con el reloj, aunque el usuario lo haya tocado
+  // antes — así no queda "trabado" con un valor viejo tras un toque accidental.
+  useEffect(() => {
+    setTimeTouched(false);
+  }, [clockRunning, match?.clock_started_at, match?.clock_offset_ms, match?.current_period]);
+
   // Auto-fill time from the live clock while untouched
   useEffect(() => {
     if (timeTouched) return;
@@ -747,14 +754,28 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <Input
-                value={time}
-                onChange={(e) => {
-                  setTimeTouched(true);
-                  setTime(e.target.value);
-                }}
-                placeholder="05:30"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={time}
+                  onChange={(e) => {
+                    setTimeTouched(true);
+                    setTime(e.target.value);
+                  }}
+                  placeholder="05:30"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    setTimeTouched(false);
+                    setTime(formatClock(elapsedMs(match)));
+                  }}
+                >
+                  Usar actual
+                </Button>
+              </div>
               {clockRunning && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
               )}
@@ -868,6 +889,13 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const currentPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
+
+  // Cada vez que el cronómetro cambia de estado (pausa, reanuda, cambia de período),
+  // se vuelve a sincronizar el campo con el reloj, aunque el usuario lo haya tocado
+  // antes — así no queda "trabado" con un valor viejo tras un toque accidental.
+  useEffect(() => {
+    setTimeTouched(false);
+  }, [clockRunning, match?.clock_started_at, match?.clock_offset_ms, match?.current_period]);
 
   // time_mmss de la sanción = tiempo RESTANTE del período (igual que el cronómetro
   // grande), porque penaltyRemainingMs() en matchClock.ts lo interpreta así.
@@ -1003,14 +1031,28 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <Input
-                value={gameTime}
-                onChange={(e) => {
-                  setTimeTouched(true);
-                  setGameTime(e.target.value);
-                }}
-                placeholder="05:30"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={gameTime}
+                  onChange={(e) => {
+                    setTimeTouched(true);
+                    setGameTime(e.target.value);
+                  }}
+                  placeholder="05:30"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    setTimeTouched(false);
+                    setGameTime(formatClock(remainingMs(match)));
+                  }}
+                >
+                  Usar actual
+                </Button>
+              </div>
               {clockRunning && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
               )}
