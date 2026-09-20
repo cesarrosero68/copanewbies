@@ -63,7 +63,6 @@ const PENALTY_TYPES = [
 ];
 
 const PREDEFINED_TIMES = [
-  { label: "1:00", value: "01:00" },
   { label: "1:30", value: "01:30" },
   { label: "4:00", value: "04:00" },
   { label: "10:00", value: "10:00" },
@@ -265,40 +264,45 @@ function MatchClockPanel({ match, updateMatch }: any) {
 }
 
 function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
-  // reg_home_score / reg_away_score are always derived from goal_events
-  // (see GoalEventsSection.recalcScore) — this component only displays them.
+  const [homeScore, setHomeScore] = useState(match.reg_home_score?.toString() || "0");
+  const [awayScore, setAwayScore] = useState(match.reg_away_score?.toString() || "0");
   const [otPlayed, setOtPlayed] = useState(match.ot_played || false);
   const [soPlayed, setSoPlayed] = useState(match.so_played || false);
   const [winnerId, setWinnerId] = useState(match.winner_team_id || "");
 
   useEffect(() => {
+    setHomeScore(match.reg_home_score?.toString() || "0");
+    setAwayScore(match.reg_away_score?.toString() || "0");
     setOtPlayed(match.ot_played || false);
     setSoPlayed(match.so_played || false);
     setWinnerId(match.winner_team_id || "");
   }, [match]);
 
-  const homeScore = match.reg_home_score ?? 0;
-  const awayScore = match.reg_away_score ?? 0;
-
-  const savePlayoffResult = () => {
-    const resolvedWinnerId = homeScore > awayScore
-      ? match.home_team_id
-      : awayScore > homeScore
-        ? match.away_team_id
-        : winnerId;
-
+  const saveScore = () => {
+    const parsedHomeScore = parseInt(homeScore);
+    const parsedAwayScore = parseInt(awayScore);
     const updates: any = {
-      ot_played: otPlayed,
-      so_played: soPlayed,
+      reg_home_score: parsedHomeScore,
+      reg_away_score: parsedAwayScore,
     };
-    if (resolvedWinnerId) {
-      updates.winner_team_id = resolvedWinnerId;
-      updates.ot_winner_team_id = otPlayed && !soPlayed ? resolvedWinnerId : null;
-      updates.so_winner_team_id = soPlayed ? resolvedWinnerId : null;
-    } else {
-      updates.winner_team_id = null;
-      updates.ot_winner_team_id = null;
-      updates.so_winner_team_id = null;
+    if (isPlayoff) {
+      updates.ot_played = otPlayed;
+      updates.so_played = soPlayed;
+      const resolvedWinnerId = parsedHomeScore > parsedAwayScore
+        ? match.home_team_id
+        : parsedAwayScore > parsedHomeScore
+          ? match.away_team_id
+          : winnerId;
+
+      if (resolvedWinnerId) {
+        updates.winner_team_id = resolvedWinnerId;
+        updates.ot_winner_team_id = otPlayed && !soPlayed ? resolvedWinnerId : null;
+        updates.so_winner_team_id = soPlayed ? resolvedWinnerId : null;
+      } else {
+        updates.winner_team_id = null;
+        updates.ot_winner_team_id = null;
+        updates.so_winner_team_id = null;
+      }
     }
     updateMatch.mutate(updates);
   };
@@ -310,20 +314,37 @@ function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
           <div className="text-center flex-1">
             <TeamLogo team={match.home_team} size={48} className="mx-auto mb-2" />
             <h2 className="font-display text-lg font-bold">{match.home_team?.name}</h2>
+            {isLive && (
+              <Input
+                type="number" min={0} value={homeScore}
+                onChange={(e) => setHomeScore(e.target.value)}
+                className="w-20 mx-auto mt-2 text-center font-display text-2xl font-bold h-12"
+              />
+            )}
           </div>
 
           <div className="text-center">
-            <div className="font-display text-4xl font-bold">
-              {homeScore} - {awayScore}
-            </div>
-            {isLive && (
-              <p className="text-xs text-muted-foreground mt-1">Se actualiza al registrar goles</p>
+            {isPlayed ? (
+              <div className="font-display text-4xl font-bold">
+                {match.reg_home_score} - {match.reg_away_score}
+              </div>
+            ) : isLive ? (
+              <div className="font-display text-3xl text-muted-foreground">VS</div>
+            ) : (
+              <div className="font-display text-3xl text-muted-foreground">VS</div>
             )}
           </div>
 
           <div className="text-center flex-1">
             <TeamLogo team={match.away_team} size={48} className="mx-auto mb-2" />
             <h2 className="font-display text-lg font-bold">{match.away_team?.name}</h2>
+            {isLive && (
+              <Input
+                type="number" min={0} value={awayScore}
+                onChange={(e) => setAwayScore(e.target.value)}
+                className="w-20 mx-auto mt-2 text-center font-display text-2xl font-bold h-12"
+              />
+            )}
           </div>
         </div>
 
@@ -351,12 +372,14 @@ function ScoreBoard({ match, updateMatch, isLive, isPlayed, isPlayoff }: any) {
                 </Select>
               </div>
             )}
-            <div className="flex justify-center mt-2">
-              <Button onClick={savePlayoffResult} size="sm">Guardar resultado de playoff</Button>
-            </div>
           </div>
         )}
 
+        {isLive && (
+          <div className="flex justify-center mt-4">
+            <Button onClick={saveScore} size="sm">Guardar Marcador</Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -514,18 +537,13 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Every time the admin switches team or period (i.e. starts loading a
-  // different goal), trust the clock again until the field is edited by hand.
+  // Auto-fill time from the live clock while untouched
   useEffect(() => {
-    setTimeTouched(false);
-  }, [teamId, period]);
-
-  // Take a snapshot of the current clock value (running or paused) once,
-  // instead of ticking live inside the field — the field is a fixed value.
-  useEffect(() => {
-    if (!clockEnabled || timeTouched) return;
-    setTime(formatClock(remainingMs(match)));
-  }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+    if (!clockRunning || timeTouched) return;
+    setTime(formatClock(elapsedMs(match)));
+    const t = setInterval(() => setTime(formatClock(elapsedMs(match))), 1000);
+    return () => clearInterval(t);
+  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   // Keep period synced with the live period
   useEffect(() => {
@@ -574,22 +592,6 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const scoringTeamPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const defendingTeamPlayers = teamId === homeTeamId ? awayPlayers : homePlayers;
 
-  // Recount real goals for both teams and keep the scoreboard in sync —
-  // the score is always derived from goal_events, never typed by hand.
-  const recalcScore = async () => {
-    const { data: allGoals } = await supabase
-      .from("goal_events")
-      .select("team_id")
-      .eq("match_id", matchId);
-    const homeGoals = (allGoals || []).filter((g: any) => g.team_id === homeTeamId).length;
-    const awayGoals = (allGoals || []).filter((g: any) => g.team_id === awayTeamId).length;
-    await supabase
-      .from("matches")
-      .update({ reg_home_score: homeGoals, reg_away_score: awayGoals })
-      .eq("id", matchId);
-    queryClient.invalidateQueries({ queryKey: ["admin-match", matchId] });
-  };
-
   const addGoal = useMutation({
     mutationFn: async () => {
       if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
@@ -611,7 +613,6 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
       }
       const { error } = await supabase.from("goal_events").insert(insert);
       if (error) throw error;
-      await recalcScore();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
@@ -630,7 +631,6 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
     mutationFn: async (goalId: string) => {
       const { error } = await supabase.from("goal_events").delete().eq("id", goalId);
       if (error) throw error;
-      await recalcScore();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
@@ -650,11 +650,11 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
               <div>
                 <span className="font-mono text-xs mr-2">P{g.period} {g.time_mmss}</span>
                 {g.is_own_goal ? (
-                  <span className="font-medium text-destructive">Autogol{g.own_goal_player ? ` (${g.own_goal_player.name})` : ''}</span>
+                  <span className="font-medium text-destructive">Autogol{g.own_goal_player ? ` (#${g.own_goal_player.jersey_number} ${g.own_goal_player.name})` : ''}</span>
                 ) : (
-                  <span className="font-medium">{g.scorer?.name}</span>
+                  <span className="font-medium">#{g.scorer?.jersey_number} {g.scorer?.name}</span>
                 )}
-                {g.assist && <span className="text-muted-foreground"> (A: {g.assist.name})</span>}
+                {g.assist && <span className="text-muted-foreground"> (A: #{g.assist.jersey_number} {g.assist.name})</span>}
                 <span className="text-xs text-muted-foreground ml-2">- {g.team?.name}</span>
               </div>
               {!disabled && (
@@ -697,32 +697,16 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={time}
-                  onChange={(e) => {
-                    setTimeTouched(true);
-                    setTime(e.target.value);
-                  }}
-                  placeholder="05:30"
-                />
-                {clockEnabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => {
-                      setTime(formatClock(remainingMs(match)));
-                      setTimeTouched(false);
-                    }}
-                  >
-                    Usar actual
-                  </Button>
-                )}
-              </div>
-              {clockEnabled && !timeTouched && (
-                <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
+              <Input
+                value={time}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
+              {clockRunning && !timeTouched && (
+                <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
               )}
             </div>
 
@@ -786,7 +770,8 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const queryClient = useQueryClient();
   const [teamId, setTeamId] = useState(homeTeamId);
   const [period, setPeriod] = useState("1");
-  const [time, setTime] = useState("");
+  const [gameMinutes, setGameMinutes] = useState("");
+  const [gameSeconds, setGameSeconds] = useState("00");
   const [timeTouched, setTimeTouched] = useState(false);
   const [timePreset, setTimePreset] = useState("01:30");
   const [penaltyMins, setPenaltyMins] = useState("1");
@@ -835,18 +820,17 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Every time the admin switches team or period (i.e. starts loading a
-  // different penalty), trust the clock again until the field is edited by hand.
   useEffect(() => {
-    setTimeTouched(false);
-  }, [teamId, period]);
-
-  // Take a snapshot of the current clock value (running or paused) once,
-  // instead of ticking live inside the field — the field is a fixed value.
-  useEffect(() => {
-    if (!clockEnabled || timeTouched) return;
-    setTime(formatClock(remainingMs(match)));
-  }, [clockEnabled, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
+    if (!clockRunning || timeTouched) return;
+    const sync = () => {
+      const [m, s] = formatClock(elapsedMs(match)).split(":");
+      setGameMinutes(String(parseInt(m)));
+      setGameSeconds(s);
+    };
+    sync();
+    const t = setInterval(sync, 1000);
+    return () => clearInterval(t);
+  }, [clockRunning, timeTouched, match?.clock_started_at, match?.clock_offset_ms]);
 
   useEffect(() => {
     if (!clockEnabled) return;
@@ -856,7 +840,10 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
   const addPenalty = useMutation({
     mutationFn: async () => {
-      if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
+      const gMins = parseInt(gameMinutes) || 0;
+      const gSecs = parseInt(gameSeconds) || 0;
+      const timeMmss = `${String(gMins).padStart(2, "0")}:${String(gSecs).padStart(2, "0")}`;
+      if (!isValidMmSs(timeMmss)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
       const pMins = parseInt(penaltyMins) || 0;
       const pSecs = parseInt(penaltySecs) || 0;
       const durationMmss = `${String(pMins).padStart(2, "0")}:${String(pSecs).padStart(2, "0")}`;
@@ -865,7 +852,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
         team_id: teamId,
         player_id: playerId,
         period,
-        time_mmss: time,
+        time_mmss: timeMmss,
         penalty_type: penaltyType,
         duration_mmss: durationMmss,
       });
@@ -873,7 +860,8 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
-      setTime("");
+      setGameMinutes("");
+      setGameSeconds("00");
       setTimeTouched(false);
       setTimePreset("01:30");
       setPenaltyMins("1");
@@ -912,7 +900,7 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const canAdd = !!playerId && !!penaltyType && time !== "";
+  const canAdd = !!playerId && !!penaltyType && gameMinutes !== "";
 
   return (
     <Card>
@@ -970,35 +958,15 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={time}
-                  onChange={(e) => {
-                    setTimeTouched(true);
-                    setTime(e.target.value);
-                  }}
-                  placeholder="05:30"
-                />
-                {clockEnabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => {
-                      setTime(formatClock(remainingMs(match)));
-                      setTimeTouched(false);
-                    }}
-                  >
-                    Usar actual
-                  </Button>
-                )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Minuto del partido</Label>
+                <Input type="number" min={0} max={60} value={gameMinutes} onChange={(e) => { setTimeTouched(true); setGameMinutes(e.target.value); }} placeholder="00" />
               </div>
-              {clockEnabled && !timeTouched && (
-                <p className="text-xs text-muted-foreground mt-1">Tomado del cronómetro al abrir · edítalo si es necesario</p>
-              )}
+              <div>
+                <Label className="text-xs">Segundos</Label>
+                <Input type="number" min={0} max={59} value={gameSeconds} onChange={(e) => { setTimeTouched(true); setGameSeconds(e.target.value); }} placeholder="00" />
+              </div>
             </div>
 
             <div>
