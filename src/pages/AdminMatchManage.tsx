@@ -592,6 +592,23 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const scoringTeamPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const defendingTeamPlayers = teamId === homeTeamId ? awayPlayers : homePlayers;
 
+  // Recalcula el marcador desde los goles registrados y lo guarda en el partido,
+  // para que el marcador de arriba siempre refleje los goles cargados abajo.
+  const syncScoreFromGoals = async () => {
+    const { data: currentGoals } = await supabase
+      .from("goal_events")
+      .select("team_id")
+      .eq("match_id", matchId);
+    const homeGoals = (currentGoals || []).filter((g: any) => g.team_id === homeTeamId).length;
+    const awayGoals = (currentGoals || []).filter((g: any) => g.team_id === awayTeamId).length;
+    await supabase.from("matches").update({
+      reg_home_score: homeGoals,
+      reg_away_score: awayGoals,
+    }).eq("id", matchId);
+    queryClient.invalidateQueries({ queryKey: ["admin-match", matchId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+  };
+
   const addGoal = useMutation({
     mutationFn: async () => {
       if (!isValidMmSs(time)) throw new Error("Tiempo inválido. Usa el formato mm:ss");
@@ -614,8 +631,9 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
       const { error } = await supabase.from("goal_events").insert(insert);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
+      await syncScoreFromGoals();
       setTime("");
       setTimeTouched(false);
       setScorerId("");
@@ -632,8 +650,9 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
       const { error } = await supabase.from("goal_events").delete().eq("id", goalId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin-goals", matchId] });
+      await syncScoreFromGoals();
       toast({ title: "Gol eliminado" });
     },
   });
