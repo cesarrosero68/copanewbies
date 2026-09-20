@@ -856,10 +856,12 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
+  // time_mmss de la sanción = tiempo RESTANTE del período (igual que el cronómetro
+  // grande), porque penaltyRemainingMs() en matchClock.ts lo interpreta así.
   useEffect(() => {
     if (timeTouched) return;
     const sync = () => {
-      const [m, s] = formatClock(elapsedMs(match)).split(":");
+      const [m, s] = formatClock(remainingMs(match)).split(":");
       setGameMinutes(String(parseInt(m)));
       setGameSeconds(s);
     };
