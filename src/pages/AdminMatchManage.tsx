@@ -567,13 +567,6 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
 
-  // Cada vez que el cronómetro cambia de estado (pausa, reanuda, cambia de período),
-  // se vuelve a sincronizar el campo con el reloj, aunque el usuario lo haya tocado
-  // antes — así no queda "trabado" con un valor viejo tras un toque accidental.
-  useEffect(() => {
-    setTimeTouched(false);
-  }, [clockRunning, match?.clock_started_at, match?.clock_offset_ms, match?.current_period]);
-
   // Auto-fill time from the live clock while untouched
   useEffect(() => {
     if (timeTouched) return;
@@ -597,8 +590,9 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
         .from("goal_events")
         .select("*, scorer:players!goal_events_scorer_player_id_fkey(*), assist:players!goal_events_assist_player_id_fkey(*), team:teams(*), own_goal_player:players!goal_events_own_goal_by_player_id_fkey(*)")
         .eq("match_id", matchId)
-        .order("period")
-        .order("time_mmss");
+        // Más reciente registrado primero, para que la vista de admin muestre arriba
+        // lo último que se acaba de anotar (en vez del orden cronológico del partido).
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -754,28 +748,14 @@ function GoalEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled }:
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={time}
-                  onChange={(e) => {
-                    setTimeTouched(true);
-                    setTime(e.target.value);
-                  }}
-                  placeholder="05:30"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                  onClick={() => {
-                    setTimeTouched(false);
-                    setTime(formatClock(elapsedMs(match)));
-                  }}
-                >
-                  Usar actual
-                </Button>
-              </div>
+              <Input
+                value={time}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
               {clockRunning && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
               )}
@@ -856,8 +836,8 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
         .from("penalty_events")
         .select("*, player:players(*), team:teams(*)")
         .eq("match_id", matchId)
-        .order("period")
-        .order("time_mmss");
+        // Más reciente registrada primero (ver comentario equivalente en admin-goals).
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -889,13 +869,6 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
   const currentPlayers = teamId === homeTeamId ? homePlayers : awayPlayers;
   const clockRunning = isClockRunning(match);
   const clockEnabled = match?.clock_enabled !== false;
-
-  // Cada vez que el cronómetro cambia de estado (pausa, reanuda, cambia de período),
-  // se vuelve a sincronizar el campo con el reloj, aunque el usuario lo haya tocado
-  // antes — así no queda "trabado" con un valor viejo tras un toque accidental.
-  useEffect(() => {
-    setTimeTouched(false);
-  }, [clockRunning, match?.clock_started_at, match?.clock_offset_ms, match?.current_period]);
 
   // time_mmss de la sanción = tiempo RESTANTE del período (igual que el cronómetro
   // grande), porque penaltyRemainingMs() en matchClock.ts lo interpreta así.
@@ -1031,28 +1004,14 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
 
             <div>
               <Label className="text-xs">Tiempo (mm:ss)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={gameTime}
-                  onChange={(e) => {
-                    setTimeTouched(true);
-                    setGameTime(e.target.value);
-                  }}
-                  placeholder="05:30"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                  onClick={() => {
-                    setTimeTouched(false);
-                    setGameTime(formatClock(remainingMs(match)));
-                  }}
-                >
-                  Usar actual
-                </Button>
-              </div>
+              <Input
+                value={gameTime}
+                onChange={(e) => {
+                  setTimeTouched(true);
+                  setGameTime(e.target.value);
+                }}
+                placeholder="05:30"
+              />
               {clockRunning && !timeTouched && (
                 <p className="text-xs text-muted-foreground mt-1">Sincronizado con el cronómetro</p>
               )}
@@ -1133,7 +1092,11 @@ function PenaltyCountdown({ match, penalty, onEndEarly }: { match: any; penalty:
   }
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="outline" className="text-xs font-mono tabular-nums">{clock}</Badge>
+      {/* Cronómetro de sanción en curso: más grande, en rojo y negrita, para
+          distinguirlo de un dato más y que se note a simple vista que está corriendo. */}
+      <span className="font-mono tabular-nums text-2xl font-bold text-destructive leading-none">
+        {clock}
+      </span>
       {onEndEarly && (
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onEndEarly}>
           Terminar sanción
