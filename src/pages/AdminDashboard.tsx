@@ -504,7 +504,12 @@ export default function AdminDashboard() {
   type MatchGroup = { key: string; label: string; matches: any[] };
   const matchGroups: MatchGroup[] = [];
   for (const match of sortedMatches) {
-    const key = match.start_time ? toBogotaDate(match.start_time).toISOString().slice(0, 10) : "sin-fecha";
+    // Se arma la llave con format() (que usa los valores LOCALES del objeto Date que
+    // ya representa la hora de Bogotá), en vez de toISOString() (que siempre vuelve a
+    // convertir a UTC). Con toISOString(), un partido de noche en Bogotá podía caer en
+    // el día siguiente en UTC y separarse en su propio bloque, aunque fuera la misma
+    // fecha para todos los demás partidos del día.
+    const key = match.start_time ? format(toBogotaDate(match.start_time), "yyyy-MM-dd") : "sin-fecha";
     let group = matchGroups.find((g) => g.key === key);
     if (!group) {
       const label = match.start_time
@@ -659,6 +664,11 @@ export default function AdminDashboard() {
                           <Badge variant="outline" className="text-xs">
                             {stageLabels[match.stage] || match.stage}
                           </Badge>
+                          {match.start_time && (
+                            <span className="text-xs text-muted-foreground">
+                              {format(toBogotaDate(match.start_time), "HH:mm", { locale: es })}
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-3 flex-1 min-w-[280px] justify-center">
