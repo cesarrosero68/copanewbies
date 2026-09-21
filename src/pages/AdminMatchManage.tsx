@@ -905,8 +905,14 @@ function PenaltyEventsSection({ match, matchId, homeTeamId, awayTeamId, disabled
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-penalties", matchId] });
-      setGameTime("");
-      setTimeTouched(false);
+      // El tiempo NO se resetea ni se vuelve a sincronizar con el reloj: si el partido
+      // sigue pausado para registrar otra sanción del mismo momento (mismo minuto:segundo,
+      // otro jugador/equipo), debe quedar exactamente el mismo valor que se acaba de usar.
+      // Se fuerza timeTouched = true (aunque el valor haya llegado del auto-sync) para
+      // "congelarlo": si no, el useEffect de sincronización lo pisaría con el tiempo en
+      // vivo del cronómetro un segundo después. El botón "Usar actual" sigue disponible
+      // si de verdad se quiere retomar el tiempo en vivo para la siguiente sanción.
+      setTimeTouched(true);
       setTimePreset("01:30");
       setPenaltyMins("1");
       setPenaltySecs("30");
