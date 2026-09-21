@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import TeamLogo from "@/components/TeamLogo";
-import { BarChart3, Target, HandHeart, Shield, Scale, Trophy, Medal, Award } from "lucide-react";
+import { BarChart3, Target, HandHeart, Shield, Scale, Trophy, Medal, Award, Star } from "lucide-react";
 import { mmssFromSeconds, secondsFromMmss } from "@/lib/statsUtils";
 
 const AWARD_LABELS: Record<string, string> = {
@@ -137,6 +137,18 @@ export default function Statistics() {
         .filter((r) => r.player)
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
+      // Mejor Jugador = goles + asistencias por jugador (misma fórmula que "points"
+      // en player_stats_aggregate, usada en la página de inicio).
+      const bestPlayerIds = new Set([...scorerAgg.keys(), ...assistAgg.keys()]);
+      const bestPlayers = Array.from(bestPlayerIds)
+        .map((pid) => {
+          const goals = scorerAgg.get(pid) || 0;
+          const assists = assistAgg.get(pid) || 0;
+          return { player: playersById.get(pid), goals, assists, points: goals + assists };
+        })
+        .filter((r) => r.player)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 10);
       const goalkeepers = Array.from(gcByTeam.entries())
         .map(([tid, count]) => ({ team: teamsById.get(tid), count, keepers: goalkeepersByTeam.get(tid) || [] }))
         .filter((r) => r.team)
@@ -148,7 +160,7 @@ export default function Statistics() {
 
       return {
         teamsById, playersById, matchesById,
-        scorers, assisters, goalkeepers, fairplay,
+        scorers, assisters, bestPlayers, goalkeepers, fairplay,
         goalsByScorer, goalsByAssister, gcGoalsByTeam, fpByTeamList,
       };
     },
@@ -158,9 +170,10 @@ export default function Statistics() {
     return <div className="container py-8"><p className="text-muted-foreground">Cargando estadísticas...</p></div>;
   }
 
-  const { scorers, assisters, goalkeepers, fairplay, teamsById, playersById, matchesById, goalsByScorer, goalsByAssister, gcGoalsByTeam, fpByTeamList } = data;
+  const { scorers, assisters, bestPlayers, goalkeepers, fairplay, teamsById, playersById, matchesById, goalsByScorer, goalsByAssister, gcGoalsByTeam, fpByTeamList } = data;
   const maxScorers = scorers[0]?.count || 1;
   const maxAssists = assisters[0]?.count || 1;
+  const maxBestPlayer = bestPlayers[0]?.points || 1;
   const maxGC = goalkeepers[goalkeepers.length - 1]?.count || 1;
   const maxFP = fairplay[fairplay.length - 1]?.secs || 1;
 
@@ -196,64 +209,83 @@ export default function Statistics() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Target className="w-5 h-5 text-primary" /> Goleadores</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              {scorers.map((r, i) => (
-                <Row key={r.player.id} rank={i + 1}
-                  logo={<TeamLogo team={teamsById.get(r.player.team_id)} size={32} />}
-                  name={r.player.name}
-                  subtitle={teamsById.get(r.player.team_id)?.name}
-                  value={r.count} pct={(r.count / maxScorers) * 100}
-                  onClick={() => setScorerModal(r.player)} />
-              ))}
-              {scorers.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin datos</p>}
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-primary" /> Mejor Jugador</CardTitle></CardHeader>
+              <CardContent className="space-y-1">
+                {bestPlayers.map((r, i) => (
+                  <Row key={r.player.id} rank={i + 1}
+                    logo={<TeamLogo team={teamsById.get(r.player.team_id)} size={32} />}
+                    name={r.player.name}
+                    subtitle={`${teamsById.get(r.player.team_id)?.name} · ${r.goals}G ${r.assists}A`}
+                    value={r.points} pct={(r.points / maxBestPlayer) * 100}
+                    onClick={() => setScorerModal(r.player)} />
+                ))}
+                {bestPlayers.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin datos</p>}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><HandHeart className="w-5 h-5 text-primary" /> Asistentes</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              {assisters.map((r, i) => (
-                <Row key={r.player.id} rank={i + 1}
-                  logo={<TeamLogo team={teamsById.get(r.player.team_id)} size={32} />}
-                  name={r.player.name}
-                  subtitle={teamsById.get(r.player.team_id)?.name}
-                  value={r.count} pct={(r.count / maxAssists) * 100}
-                  onClick={() => setAssistModal(r.player)} />
-              ))}
-              {assisters.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin datos</p>}
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Target className="w-5 h-5 text-primary" /> Goleadores</CardTitle></CardHeader>
+              <CardContent className="space-y-1">
+                {scorers.map((r, i) => (
+                  <Row key={r.player.id} rank={i + 1}
+                    logo={<TeamLogo team={teamsById.get(r.player.team_id)} size={32} />}
+                    name={r.player.name}
+                    subtitle={teamsById.get(r.player.team_id)?.name}
+                    value={r.count} pct={(r.count / maxScorers) * 100}
+                    onClick={() => setScorerModal(r.player)} />
+                ))}
+                {scorers.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin datos</p>}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Valla Menos Vencida</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              {goalkeepers.map((r, i) => (
-                <Row key={r.team!.id} rank={i + 1}
-                  logo={<TeamLogo team={r.team!} size={32} />}
-                  name={r.team!.name}
-                  subtitle={r.keepers.map((k: any) => k.name).join(", ") || "Sin portero registrado"}
-                  value={r.count} pct={(r.count / maxGC) * 100}
-                  onClick={() => setTeamGKModal(r.team!)} />
-              ))}
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><HandHeart className="w-5 h-5 text-primary" /> Asistentes</CardTitle></CardHeader>
+              <CardContent className="space-y-1">
+                {assisters.map((r, i) => (
+                  <Row key={r.player.id} rank={i + 1}
+                    logo={<TeamLogo team={teamsById.get(r.player.team_id)} size={32} />}
+                    name={r.player.name}
+                    subtitle={teamsById.get(r.player.team_id)?.name}
+                    value={r.count} pct={(r.count / maxAssists) * 100}
+                    onClick={() => setAssistModal(r.player)} />
+                ))}
+                {assisters.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin datos</p>}
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /> Fair Play</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              {fairplay.map((r, i) => (
-                <Row key={r.team!.id} rank={i + 1}
-                  logo={<TeamLogo team={r.team!} size={32} />}
-                  name={r.team!.name}
-                  value={mmssFromSeconds(r.secs)} pct={(r.secs / maxFP) * 100}
-                  onClick={() => setTeamFPModal(r.team!)} />
-              ))}
-              {fairplay.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin sanciones registradas</p>}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Valla Menos Vencida</CardTitle></CardHeader>
+              <CardContent className="space-y-1">
+                {goalkeepers.map((r, i) => (
+                  <Row key={r.team!.id} rank={i + 1}
+                    logo={<TeamLogo team={r.team!} size={32} />}
+                    name={r.team!.name}
+                    subtitle={r.keepers.map((k: any) => k.name).join(", ") || "Sin portero registrado"}
+                    value={r.count} pct={(r.count / maxGC) * 100}
+                    onClick={() => setTeamGKModal(r.team!)} />
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /> Fair Play</CardTitle></CardHeader>
+              <CardContent className="space-y-1">
+                {fairplay.map((r, i) => (
+                  <Row key={r.team!.id} rank={i + 1}
+                    logo={<TeamLogo team={r.team!} size={32} />}
+                    name={r.team!.name}
+                    value={mmssFromSeconds(r.secs)} pct={(r.secs / maxFP) * 100}
+                    onClick={() => setTeamFPModal(r.team!)} />
+                ))}
+                {fairplay.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Sin sanciones registradas</p>}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
