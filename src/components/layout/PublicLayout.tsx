@@ -71,9 +71,9 @@ export default function PublicLayout() {
     );
   }
 
-  if (siteTheme?.communique_mode) {
-    return <Communique logo={headerLogo} name="Copa Newbies" />;
-  }
+  // En modo comunicado se mantienen el header, el footer y los colores de siempre,
+  // pero sin menú: debajo del logo grande se muestra la carta en vez del contenido.
+  const communiqueOn = !!siteTheme?.communique_mode;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -82,7 +82,7 @@ export default function PublicLayout() {
         className="sticky top-0 z-50 border-b border-border bg-secondary text-secondary-foreground"
         style={{ background: "var(--header-bg, hsl(var(--secondary)))" }}
       >
-        {isReadOnly && currentTournament && (
+        {!communiqueOn && isReadOnly && currentTournament && (
           <div className="bg-amber-500 text-white text-center text-sm py-2 px-4 flex flex-wrap gap-2 items-center justify-center">
             <span>
               Viendo edición: <strong>{currentTournament.name}</strong> — Solo lectura
@@ -93,7 +93,10 @@ export default function PublicLayout() {
           </div>
         )}
         <div className="container flex h-16 items-center justify-between">
-          <Link to={withEdition("/")} className="flex items-center gap-3">
+          <Link
+            to={withEdition("/")}
+            className={cn("flex items-center gap-3", communiqueOn && "pointer-events-none")}
+          >
             <img alt={fullName} className="h-10 w-10 rounded-full object-cover" src={headerLogo} />
             <span className="font-display text-xl font-bold tracking-wide uppercase">
               {namePrefix} {nameSuffix && <span className="text-primary">{nameSuffix}</span>}
@@ -101,6 +104,7 @@ export default function PublicLayout() {
           </Link>
 
           {/* Desktop nav */}
+          {!communiqueOn && (
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
@@ -123,13 +127,14 @@ export default function PublicLayout() {
               Admin
             </Link>
           </nav>
+          )}
 
         </div>
       </header>
 
       {/* Main content */}
       <main className="flex-1 pb-20 md:pb-0">
-        <Outlet />
+        {communiqueOn ? <Communique logo={headerLogo} name={fullName} /> : <Outlet />}
       </main>
 
       {/* Footer */}
@@ -155,6 +160,7 @@ export default function PublicLayout() {
       </footer>
 
       {/* Mobile bottom navigation */}
+      {!communiqueOn && (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
         <div className="grid grid-cols-5">
           {bottomBarLinks.map((link) => {
@@ -213,6 +219,8 @@ export default function PublicLayout() {
           </Sheet>
         </div>
       </nav>
+      )}
     </div>
   );
 }
+
