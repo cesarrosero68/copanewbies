@@ -3,27 +3,41 @@ interface CommuniqueProps {
   name: string;
 }
 
-// Portada informativa: es lo único que ve el público cuando
-// site_theme.communique_mode = true. Para cambiar el texto, edita este archivo.
+// Contenido de la portada informativa: se muestra dentro del layout público
+// (header y footer normales) cuando site_theme.communique_mode = true.
+// Para cambiar el texto, edita este archivo.
 export default function Communique({ logo, name }: CommuniqueProps) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6 py-12">
-      <article className="w-full max-w-2xl text-center space-y-6">
-        <img alt={name} src={logo} className="h-28 w-28 mx-auto rounded-full object-cover" />
+    <div className="container py-8 space-y-8">
+      {/* Banner con el logo, con los mismos colores de la portada */}
+      <section
+        className="py-8 md:py-10 px-6 md:px-10 rounded-xl relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--hero-bg, hsl(var(--secondary))) 0%, var(--hero-gradient-to, var(--hero-bg, hsl(var(--secondary)))) 100%)",
+          color: "hsl(var(--hero-foreground, 0 0% 100%))",
+        }}
+      >
+        <div className="flex justify-center">
+          <img alt={name} className="h-56 md:h-72 lg:h-80 object-contain drop-shadow-lg" src={logo} />
+        </div>
+      </section>
 
-        <h1 className="font-display text-3xl md:text-4xl font-bold uppercase tracking-wide">
+      {/* La carta */}
+      <article className="max-w-3xl mx-auto rounded-xl border border-border bg-card p-6 md:p-10 space-y-6">
+        <h1 className="font-display text-2xl md:text-4xl font-bold uppercase tracking-wide text-center">
           Comunicado a la comunidad Copa Newbies
         </h1>
 
-        <div className="space-y-4 text-left text-base leading-relaxed text-foreground/90">
-          <p>
+        <div className="space-y-4 text-base leading-relaxed text-foreground/90">
+          <p className="font-semibold">
             A los equipos, jugadoras, familias, patrocinadores y a toda la comunidad del hockey en línea:
           </p>
           <p>
             Copa Newbies nació con un propósito: abrir un espacio de competencia para niñas y mujeres que no lo
             tenían en los torneos oficiales. En año y medio, gracias a ustedes, creció mucho más de lo que imaginamos.
           </p>
-          <p>
+          <p className="border-l-4 border-primary pl-4">
             Por medio del presente comunicado, me permito informar de manera formal que he sido desvinculado de la
             organización de Copa Newbies. Asimismo, manifiesto que existen diferencias en la toma de decisiones
             administrativas del torneo, las cuales no coinciden con los principios y valores con los que se idealizó
@@ -39,10 +53,12 @@ export default function Communique({ logo, name }: CommuniqueProps) {
           </p>
         </div>
 
-        <p className="text-left font-medium">
+        <p className="font-medium pt-2">
           Con respeto y gratitud,
           <br />
-          César Rosero
+          <span className="font-bold">César Rosero</span>
+          <br />
+          <span className="text-sm text-muted-foreground">Cofundador de Copa Newbies</span>
         </p>
       </article>
     </div>
