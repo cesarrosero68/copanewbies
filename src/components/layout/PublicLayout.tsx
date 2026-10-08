@@ -2,11 +2,14 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Menu, Home as HomeIcon, Calendar, BarChart, Users } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import copaLogo from "@/assets/copa-newbies-logo.png";
 import { useTournament } from "@/lib/tournamentContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import SponsorsMarquee from "@/components/SponsorsMarquee";
+import Communique from "@/components/Communique";
 
 const navLinks = [
   { to: "/", label: "Inicio" },
@@ -42,17 +45,34 @@ export default function PublicLayout() {
   const withEdition = (path: string) =>
     isReadOnly && currentTournament ? `${path}?edition=${currentTournament.id}` : path;
 
+  // Modo comunicado: el público solo ve la portada con el comunicado, sin menú ni
+  // pestañas, en cualquier ruta pública. Se activa/desactiva con un UPDATE en
+  // site_theme.communique_mode desde Supabase. /admin queda fuera de este layout y
+  // no se afecta. Si la columna aún no existe o la consulta falla, el sitio se
+  // muestra normal (el valor por defecto es "no comunicado").
+  const { data: siteTheme, isLoading: communiqueLoading } = useQuery({
+    queryKey: ["site-theme-communique"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("site_theme" as any).select("communique_mode").eq("id", 1).maybeSingle() as any);
+      return data;
+    },
+  });
+
   // Wait for the edition + its saved appearance (colors, gradient, logo) to
   // load before rendering anything. Without this, the page briefly renders
   // with the hardcoded default theme (pink accent, no hero gradient) and
   // the fallback tournament's stats, then flashes to the real values a
   // moment later once the tournaments query resolves.
-  if (loading) {
+  if (loading || communiqueLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-sm text-muted-foreground">Cargando…</div>
       </div>
     );
+  }
+
+  if (siteTheme?.communique_mode) {
+    return <Communique logo={headerLogo} name="Copa Newbies" />;
   }
 
   return (
